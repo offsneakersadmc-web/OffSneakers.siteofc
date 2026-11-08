@@ -1,0 +1,126 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Sneaker or footwear item in the store catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique product identifier" },
+        "name": { "type": "string", "description": "Display name of sneaker" },
+        "brand": { "type": "string", "description": "Brand e.g. Nike, Jordan, Adidas" },
+        "model": { "type": "string", "description": "Model line e.g. Air Jordan 1 High" },
+        "description": { "type": "string", "description": "Authentic description and condition details" },
+        "images": { "type": "array", "description": "Array of photography image URLs" },
+        "price": { "type": "number", "description": "Current selling price in BRL" },
+        "originalPrice": { "type": "number", "description": "Authentic market reference price before discount" },
+        "discountPercent": { "type": "number", "description": "Calculated real discount percentage" },
+        "sizes": { "type": "array", "description": "Available Brazilian sneaker sizes" },
+        "inventory": { "type": "object", "description": "Stock count per size" },
+        "category": { "type": "string", "description": "Category e.g. Sneakers, Streetwear, Edição Limitada" },
+        "featured": { "type": "boolean", "description": "Whether to highlight on homepage" },
+        "bestSeller": { "type": "boolean", "description": "Whether highlighted in Mais Vendidos" },
+        "newRelease": { "type": "boolean", "description": "Whether highlighted in Novidades / Lançamentos" },
+        "status": { "type": "string", "description": "active | out_of_stock | archived" },
+        "sku": { "type": "string", "description": "Stock keeping unit identifier" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["id", "name", "brand", "price", "status"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order negotiated and closed via WhatsApp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique order code e.g. OS-000101" },
+        "customer": { "type": "object", "description": "Customer details name, phone, email, address" },
+        "items": { "type": "array", "description": "Array of purchased items, sizes and prices" },
+        "subtotal": { "type": "number", "description": "Subtotal in BRL" },
+        "discount": { "type": "number", "description": "Applied discount in BRL" },
+        "shipping": { "type": "number", "description": "Shipping cost or 0 if a combinar" },
+        "total": { "type": "number", "description": "Total amount in BRL" },
+        "paymentMethod": { "type": "string", "description": "PIX | CARTAO | COMBINAR" },
+        "status": { "type": "string", "description": "novo | aguardando_atendimento | em_negociacao | aguardando_pagamento | pago | preparando | enviado | entregue | cancelado" },
+        "notes": { "type": "string", "description": "Internal notes by admin or attendant" },
+        "trackingCode": { "type": "string", "description": "Carrier tracking code" },
+        "attendant": { "type": "string", "description": "Staff member assigned" },
+        "whatsappUrl": { "type": "string", "description": "Official WhatsApp deep link" },
+        "createdAt": { "type": "string", "description": "Timestamp of order submission" },
+        "updatedAt": { "type": "string", "description": "Timestamp of status update" }
+      },
+      "required": ["id", "customer", "items", "total", "status"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "General store, contact, and WhatsApp business configuration",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string", "description": "OFFSNEAKERS" },
+        "slogan": { "type": "string", "description": "SNEAKER RESELLER." },
+        "whatsappNumber": { "type": "string", "description": "Official WhatsApp number e.g. 5511999999999" },
+        "whatsappWelcomeMsg": { "type": "string", "description": "Default customer chat initiation message" },
+        "email": { "type": "string", "description": "Official contact email" },
+        "instagram": { "type": "string", "description": "Instagram handle" },
+        "address": { "type": "string", "description": "Physical location or city" },
+        "freeShippingThreshold": { "type": "number", "description": "Minimum order value for free shipping" },
+        "paymentPixDiscount": { "type": "number", "description": "Additional discount percentage for PIX" },
+        "pixKey": { "type": "string", "description": "PIX payment key" }
+      }
+    },
+    "DesignSettings": {
+      "title": "DesignSettings",
+      "description": "Visual builder configuration for theme, colors, typography, hero and sections",
+      "type": "object",
+      "properties": {
+        "primaryColor": { "type": "string", "description": "Main brand red #C9000B" },
+        "primaryDark": { "type": "string", "description": "Dark red #850008" },
+        "black": { "type": "string", "description": "#111111" },
+        "white": { "type": "string", "description": "#FFFFFF" },
+        "heroTitle": { "type": "string", "description": "SEU ESTILO. SUAS MARCAS. SEU MELHOR PREÇO." },
+        "heroSubtitle": { "type": "string", "description": "Descubra uma seleção exclusiva de sneakers e artigos de marcas reconhecidas com condições especiais." },
+        "heroButtonText": { "type": "string", "description": "EXPLORAR COLEÇÃO" },
+        "announcementText": { "type": "string", "description": "ENVIAMOS PARA TODO O BRASIL • 100% AUTÊNTICOS • ATENDIMENTO VIP NO WHATSAPP" },
+        "sections": { "type": "array", "description": "Ordered visible sections on homepage" },
+        "version": { "type": "number", "description": "Design draft or published revision count" }
+      }
+    },
+    "Faq": {
+      "title": "Faq",
+      "description": "Frequently asked question item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Faq ID" },
+        "question": { "type": "string", "description": "Question text" },
+        "answer": { "type": "string", "description": "Answer text" },
+        "order": { "type": "number", "description": "Display order" }
+      },
+      "required": ["id", "question", "answer"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Collection of sneakers and streetwear items"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Collection of WhatsApp checkout orders"
+    },
+    "/store_settings/current": {
+      "schema": { "$ref": "#/entities/StoreSettings" },
+      "description": "Store contact and WhatsApp operational settings"
+    },
+    "/design_settings/current": {
+      "schema": { "$ref": "#/entities/DesignSettings" },
+      "description": "Live published visual customizer settings"
+    },
+    "/design_settings/draft": {
+      "schema": { "$ref": "#/entities/DesignSettings" },
+      "description": "Unpublished draft visual customizer settings"
+    },
+    "/faqs/{faqId}": {
+      "schema": { "$ref": "#/entities/Faq" },
+      "description": "FAQ items editable by store administrators"
+    }
+  }
+}

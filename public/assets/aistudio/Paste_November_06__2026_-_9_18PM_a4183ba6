@@ -1,0 +1,1274 @@
+# OFFSNEAKERS® — PROMPT MASTER DEFINITIVO
+## Desenvolvimento de uma plataforma completa de e-commerce, gerenciamento visual e administração.
+
+Desenvolva uma plataforma profissional de comércio eletrônico para a empresa OFFSNEAKERS, especializada na revenda de sneakers, calçados e artigos de marcas reconhecidas.
+
+O projeto deverá ser uma loja virtual completa, com identidade visual própria, catálogo dinâmico, checkout com direcionamento para WhatsApp, gerenciamento de pedidos, painel administrativo privado, editor visual em tempo real e infraestrutura permanente de armazenamento utilizando Firebase e hospedagem no Netlify.
+
+**INSTRUÇÃO FUNDAMENTAL: NÃO DESENVOLVER APENAS UMA LANDING PAGE OU UM PROTÓTIPO. CONSTRUIR UMA PLATAFORMA FUNCIONAL, COM BANCO DE DADOS REAL, AUTENTICAÇÃO, PERSISTÊNCIA DE INFORMAÇÕES E FUNCIONALIDADES INTEGRADAS.**
+
+---
+
+# 1. IDENTIDADE VISUAL OFICIAL DA OFFSNEAKERS
+
+A imagem de referência enviada pelo proprietário deverá ser utilizada como principal orientação para toda a identidade visual.
+
+Não criar uma identidade diferente.
+
+## 1.1. Identidade da marca
+
+Nome: OFFSNEAKERS®
+
+Slogan: SNEAKER RESELLER.
+
+Segmento: Revenda de sneakers, calçados e artigos de marcas reconhecidas.
+
+Personalidade da marca:
+- Urbana.
+- Moderna.
+- Exclusiva.
+- Minimalista.
+- Premium.
+- Streetwear.
+- Autêntica.
+- Sofisticada.
+
+A loja deverá parecer uma boutique independente especializada em sneakers, com personalidade visual forte e reconhecimento imediato da marca.
+
+## 1.2. Paleta de cores
+
+Utilizar a seguinte paleta como padrão inicial:
+
+- Vermelho principal: #C9000B.
+- Vermelho escuro: #850008.
+- Branco: #FFFFFF.
+- Preto: #111111.
+- Cinza claro: #F3F3F3.
+- Cinza secundário: #777777.
+
+O vermelho será a cor predominante.
+
+O branco deverá ser utilizado nos logotipos, títulos e elementos de destaque.
+
+O preto será utilizado em textos, detalhes e contrastes.
+
+Não utilizar gradientes coloridos, excesso de cores ou elementos que descaracterizem a marca.
+
+## 1.3. Logotipo
+
+A referência apresenta:
+
+- Nome OFFSNEAKERS em letras brancas.
+- Tipografia alta, condensada, forte e robusta.
+- Fundo vermelho intenso.
+- Elemento gráfico escuro inspirado em transporte urbano atrás do nome.
+- Linha horizontal branca.
+- Slogan SNEAKER RESELLER em letras espaçadas.
+
+Preservar essa personalidade visual.
+
+Se o arquivo original do logotipo estiver disponível, utilizá-lo diretamente em vez de recriá-lo.
+
+Utilizar fontes semelhantes à Anton, Bebas Neue ou outras tipografias condensadas.
+
+Não distorcer o logotipo.
+
+## 1.4. Aplicação
+
+A identidade deverá aparecer em:
+- Cabeçalho.
+- Banner principal.
+- Catálogo.
+- Cards.
+- Página de produtos.
+- Carrinho.
+- Checkout.
+- Rodapé.
+- Página institucional.
+- Painel administrativo.
+- Editor visual.
+- Ícones e elementos promocionais.
+
+---
+
+# 2. POSICIONAMENTO DA EMPRESA
+
+A OFFSNEAKERS é uma empresa especializada na comercialização de sneakers, calçados e artigos de marcas reconhecidas.
+
+Seu diferencial é oferecer produtos com preços muito abaixo dos valores tradicionalmente encontrados no mercado.
+
+A comunicação deverá transmitir exclusividade, qualidade, autenticidade, confiança e condições especiais.
+
+Frases comerciais:
+
+"OS MELHORES SNEAKERS. PREÇOS FORA DO PADRÃO."
+
+"EXCLUSIVIDADE QUE CABE NO SEU BOLSO."
+
+"AS MELHORES MARCAS, CONDIÇÕES QUE SURPREENDEM."
+
+"SEU ESTILO. SUAS MARCAS. SEU MELHOR PREÇO."
+
+"OFFSNEAKERS — SNEAKER RESELLER."
+
+Não criar preços anteriores fictícios, descontos falsos, parcerias inexistentes ou promessas não comprovadas.
+
+---
+
+# 3. PÁGINA INICIAL
+
+Construir uma homepage premium, responsiva e comercialmente atrativa.
+
+## Cabeçalho
+
+Incluir:
+- Logotipo OFFSNEAKERS.
+- Início.
+- Catálogo.
+- Sneakers.
+- Marcas.
+- Ofertas.
+- Lançamentos.
+- Sobre nós.
+- Contato.
+- Pesquisa.
+- Conta do cliente.
+- Carrinho.
+
+O menu deverá funcionar perfeitamente em computadores e celulares.
+
+## Banner principal
+
+Criar um banner de grande impacto visual.
+
+Fundo vermelho intenso, tipografia branca condensada e fotografias profissionais de sneakers.
+
+Título:
+
+"SEU ESTILO. SUAS MARCAS. SEU MELHOR PREÇO."
+
+Subtítulo:
+
+"Descubra uma seleção exclusiva de sneakers e artigos de marcas reconhecidas com condições especiais."
+
+Botão:
+
+"EXPLORAR COLEÇÃO"
+
+O botão deverá levar ao catálogo.
+
+## Organização da homepage
+
+Criar as seguintes seções:
+
+1. Banner principal.
+2. Ofertas em destaque.
+3. Mais vendidos.
+4. Sneakers selecionados.
+5. Novidades.
+6. Coleções por marca.
+7. Produtos exclusivos.
+8. Benefícios da OFFSNEAKERS.
+9. Sobre a empresa.
+10. Perguntas frequentes.
+11. Redes sociais.
+12. Rodapé.
+
+Todas as seções deverão ser administráveis pelo editor visual.
+
+---
+
+# 4. CATÁLOGO DE PRODUTOS
+
+Criar catálogo dinâmico conectado ao Firebase Firestore.
+
+Cada produto deverá possuir:
+
+- Nome.
+- Marca.
+- Modelo.
+- Descrição.
+- Fotografias.
+- Preço.
+- Preço de referência, quando verdadeiro.
+- Desconto.
+- Numerações.
+- Estoque.
+- Categoria.
+- Status de disponibilidade.
+- Data de cadastro.
+- Destaque na homepage.
+
+## Filtros
+
+Permitir filtrar por:
+
+- Marca.
+- Modelo.
+- Categoria.
+- Numeração.
+- Faixa de preço.
+- Mais vendidos.
+- Menor preço.
+- Novidades.
+- Ofertas.
+
+Criar pesquisa inteligente por nome, modelo e marca.
+
+## Cards
+
+Cada produto deverá apresentar:
+
+- Fotografia de qualidade.
+- Nome.
+- Marca.
+- Preço anterior, quando aplicável.
+- Preço atual.
+- Desconto real.
+- Botão VER PRODUTO.
+
+Utilizar fundo branco ou cinza claro, detalhes vermelhos e tipografia consistente.
+
+---
+
+# 5. PÁGINA INDIVIDUAL DOS PRODUTOS
+
+Criar uma página exclusiva para cada produto.
+
+Incluir:
+- Galeria de fotografias.
+- Nome.
+- Marca.
+- Descrição.
+- Preço.
+- Desconto.
+- Seleção de numeração.
+- Quantidade.
+- Estoque.
+- Informações de entrega.
+- Informações de autenticidade e procedência verificáveis.
+
+Botões:
+- ADICIONAR AO CARRINHO.
+- COMPRAR AGORA.
+
+Não permitir adicionar ao carrinho sem selecionar a numeração.
+
+---
+
+# 6. CARRINHO DE COMPRAS
+
+Implementar carrinho funcional.
+
+O cliente deverá conseguir:
+
+- Adicionar vários produtos.
+- Escolher numerações.
+- Alterar quantidades.
+- Remover produtos.
+- Consultar subtotal.
+- Consultar descontos.
+- Consultar frete.
+- Visualizar valor final.
+
+Preservar o carrinho durante a navegação e, quando aplicável, entre sessões.
+
+Validar estoque antes da finalização.
+
+---
+
+# 7. CHECKOUT REAL COM WHATSAPP
+
+Esta é uma das funcionalidades centrais do projeto.
+
+A OFFSNEAKERS realizará a negociação e o recebimento dos pagamentos diretamente pelo WhatsApp oficial da empresa.
+
+Não implementar gateway de pagamento obrigatório dentro do site.
+
+Entretanto, o site deverá possuir um checkout real e funcional.
+
+## Dados do comprador
+
+Solicitar:
+
+- Nome completo.
+- Telefone com DDD.
+- E-mail.
+- CEP.
+- Endereço.
+- Número.
+- Complemento.
+- Bairro.
+- Cidade.
+- Estado.
+
+## Resumo financeiro
+
+Mostrar automaticamente:
+
+- Produtos.
+- Numerações.
+- Quantidades.
+- Preços individuais.
+- Subtotal.
+- Descontos.
+- Frete.
+- Valor total.
+
+O frete poderá ser calculado conforme configuração ou informado como a combinar, sempre de maneira transparente.
+
+## Formas de pagamento
+
+Criar opções configuráveis pelo administrador:
+
+- PIX.
+- Cartão, mediante atendimento.
+- Outras modalidades autorizadas.
+
+O PIX deverá receber destaque visual quando estiver habilitado.
+
+Registrar a forma de pagamento escolhida no pedido.
+
+## Botão principal
+
+Criar botão:
+
+**PROSSEGUIR PARA PAGAMENTO**
+
+Ao clicar:
+
+1. Validar os dados.
+2. Validar disponibilidade.
+3. Calcular o valor final.
+4. Gerar identificador único do pedido.
+5. Registrar o pedido no Firebase.
+6. Registrar os dados do cliente.
+7. Registrar os produtos e tamanhos.
+8. Registrar a forma de pagamento.
+9. Registrar data e horário.
+10. Gerar a mensagem automática.
+11. Abrir o WhatsApp oficial da OFFSNEAKERS.
+
+O pedido deverá ser salvo antes do redirecionamento.
+
+## Mensagem automática
+
+Gerar uma mensagem personalizada com os dados reais:
+
+"Olá! Vim pelo site da OFFSNEAKERS e gostaria de finalizar meu pedido.
+
+PEDIDO OFFSNEAKERS: #OS-000001
+
+DADOS DO CLIENTE:
+Nome: [Nome]
+Telefone: [Telefone]
+
+PRODUTOS:
+
+[Produto 1]
+Numeração: [Tamanho]
+Quantidade: [Quantidade]
+Valor: R$ [Valor]
+
+[Produto 2]
+Numeração: [Tamanho]
+Quantidade: [Quantidade]
+Valor: R$ [Valor]
+
+RESUMO:
+
+Subtotal: R$ [Valor]
+Desconto: R$ [Valor]
+Frete: R$ [Valor ou a combinar]
+
+TOTAL: R$ [Valor final]
+
+FORMA DE PAGAMENTO: [PIX/CARTÃO/OUTRA]
+
+ENDEREÇO:
+[Endereço completo]
+
+Gostaria de receber as informações para realizar o pagamento e concluir meu pedido.
+
+Obrigado por escolher a OFFSNEAKERS!"
+
+Preencher todos os campos automaticamente.
+
+Utilizar link oficial de abertura de conversa do WhatsApp com mensagem pré-preenchida e número configurável.
+
+Não criar botões de simulação.
+
+Não afirmar que o cliente pagou ao abrir o WhatsApp.
+
+O status inicial será AGUARDANDO ATENDIMENTO ou AGUARDANDO PAGAMENTO.
+
+O vendedor deverá confirmar manualmente o recebimento.
+
+Se o WhatsApp não abrir, manter o pedido salvo e oferecer uma forma de tentar abrir novamente.
+
+---
+
+# 8. HISTÓRICO DE PEDIDOS E CLIENTES
+
+Criar registro persistente no Firebase para todos os pedidos.
+
+Cada pedido deverá ter:
+
+- Identificador exclusivo.
+- Cliente.
+- Telefone.
+- E-mail.
+- Produtos.
+- Numerações.
+- Quantidades.
+- Valores.
+- Forma de pagamento.
+- Endereço.
+- Data e horário.
+- Atendente.
+- Status.
+- Observações.
+
+Status possíveis:
+
+- Novo pedido.
+- Aguardando atendimento.
+- Em negociação.
+- Aguardando pagamento.
+- Pagamento confirmado.
+- Em preparação.
+- Enviado.
+- Entregue.
+- Cancelado.
+
+Criar histórico de compras para clientes autenticados ou identificados com segurança.
+
+Nunca expor dados pessoais de outros compradores.
+
+---
+
+# 9. PÁGINA SOBRE NÓS
+
+Criar uma página institucional elegante.
+
+Texto:
+
+"QUEM SOMOS — OFFSNEAKERS
+
+A OFFSNEAKERS nasceu para quem valoriza estilo, qualidade e exclusividade.
+
+Somos uma empresa especializada na comercialização de sneakers, calçados e artigos de marcas reconhecidas, oferecendo acesso a produtos desejados com preços muito abaixo dos valores tradicionalmente encontrados no mercado.
+
+Nosso propósito é proporcionar uma experiência diferenciada, unindo autenticidade, qualidade, exclusividade e condições especiais.
+
+Trabalhamos com produtos 100% originais, com procedência verificável e atenção à autenticidade de cada item comercializado.
+
+Acreditamos que ter estilo não precisa significar pagar mais caro.
+
+Por isso, selecionamos cuidadosamente nossos produtos para oferecer oportunidades especiais a quem acompanha o universo sneakerhead.
+
+Mais do que vender tênis, queremos proporcionar uma experiência de compra confiável, personalizada e exclusiva.
+
+OFFSNEAKERS — SNEAKER RESELLER.
+
+Seu estilo merece mais. Seu bolso também."
+
+Criar quatro diferenciais:
+
+AUTENTICIDADE
+Produtos originais e procedência verificável.
+
+EXCLUSIVIDADE
+Seleção de sneakers e artigos de marcas reconhecidas.
+
+PREÇOS ESPECIAIS
+Condições competitivas.
+
+ATENDIMENTO PERSONALIZADO
+Atendimento diretamente pelo WhatsApp.
+
+Utilizar selos gráficos próprios, sem inventar certificações oficiais de fabricantes.
+
+---
+
+# 10. PERGUNTAS FREQUENTES
+
+Criar uma seção editável com perguntas como:
+
+- Os produtos são originais?
+- Como funciona a compra?
+- Como realizo o pagamento?
+- Como entro em contato?
+- Quais formas de pagamento estão disponíveis?
+- Como funciona a entrega?
+- Como acompanho meu pedido?
+- Como funciona a troca e devolução?
+
+As respostas deverão ser editáveis pelo administrador.
+
+---
+
+# 11. PAINEL ADMINISTRATIVO PRIVADO
+
+Criar painel administrativo em:
+
+/admin
+
+O endereço não deverá aparecer no menu público.
+
+A proteção deverá ser feita por autenticação real, permissões e validações no servidor.
+
+## Login
+
+Criar tela com:
+- Logotipo OFFSNEAKERS.
+- E-mail.
+- Senha.
+- Recuperação de senha.
+- Controle de sessão.
+
+Criar funções de proprietário e atendente, com permissões distintas.
+
+## Dashboard
+
+Mostrar:
+
+- Faturamento confirmado.
+- Vendas.
+- Pedidos recebidos.
+- Pedidos pendentes.
+- Pedidos pagos.
+- Pedidos enviados.
+- Pedidos entregues.
+- Ticket médio.
+- Clientes.
+- Produtos mais vendidos.
+- Produtos mais visualizados.
+
+Criar gráficos por dia, semana, mês e período personalizado.
+
+Diferenciar pedidos de intenção de compra de vendas confirmadas.
+
+## Pedidos
+
+Criar tabela com:
+
+- Número.
+- Cliente.
+- Telefone.
+- Produtos.
+- Data.
+- Valor.
+- Forma de pagamento.
+- Status.
+- Atendente.
+
+Permitir:
+
+- Consultar pedidos.
+- Alterar status.
+- Registrar pagamentos confirmados.
+- Inserir observações.
+- Consultar histórico.
+- Inserir rastreamento.
+- Abrir conversa no WhatsApp.
+
+## Produtos
+
+Permitir:
+
+- Cadastrar.
+- Editar.
+- Excluir ou arquivar.
+- Fazer upload de imagens.
+- Alterar preços.
+- Configurar descontos.
+- Atualizar estoque.
+- Cadastrar numerações.
+- Criar categorias.
+- Destacar produtos.
+
+## Clientes
+
+Permitir:
+
+- Consultar cadastro.
+- Consultar histórico.
+- Visualizar pedidos.
+- Identificar clientes recorrentes.
+- Registrar observações internas.
+
+## Financeiro
+
+Mostrar:
+
+- Faturamento confirmado.
+- Valores recebidos.
+- Valores pendentes.
+- Vendas por período.
+- Relatórios.
+- Ticket médio.
+- Desempenho dos produtos.
+
+Somente pagamentos efetivamente verificados poderão ser contabilizados como recebidos.
+
+## Monitoramento
+
+Mostrar:
+
+- Visitantes.
+- Páginas acessadas.
+- Produtos visualizados.
+- Produtos adicionados ao carrinho.
+- Carrinhos abandonados.
+- Pedidos iniciados.
+- Cliques no WhatsApp.
+- Conversão em vendas.
+- Clientes recorrentes.
+- Horários de maior movimento.
+
+Não afirmar que uma mensagem foi enviada ou lida apenas porque o cliente clicou no botão do WhatsApp.
+
+---
+
+# 12. EDITOR VISUAL COMPLETO — CONSTRUTOR DE SITE
+
+ESTA FUNCIONALIDADE É OBRIGATÓRIA E DEVERÁ SER UMA DAS PRINCIPAIS DO PAINEL.
+
+Criar um sistema próprio de gerenciamento visual, semelhante a um construtor de páginas, para o proprietário conseguir alterar toda a aparência e o conteúdo da OFFSNEAKERS sem programar.
+
+Nome da seção:
+
+**EDITOR VISUAL DA LOJA**
+
+## Interface do editor
+
+Criar interface dividida em:
+
+PAINEL ESQUERDO:
+- Componentes.
+- Seções.
+- Design.
+- Tipografia.
+- Cores.
+- Imagens.
+- Configurações.
+
+ÁREA CENTRAL:
+- Pré-visualização real da loja.
+- Edição dos elementos.
+- Arrastar e soltar.
+- Reorganização das seções.
+
+BARRA SUPERIOR:
+- Salvar.
+- Desfazer.
+- Refazer.
+- Visualizar.
+- Publicar.
+- Visualização desktop.
+- Visualização tablet.
+- Visualização mobile.
+
+## Personalização
+
+Permitir alterar:
+
+- Cores.
+- Fontes.
+- Tamanhos.
+- Espaçamentos.
+- Bordas.
+- Botões.
+- Ícones.
+- Fundos.
+- Animações.
+- Cabeçalho.
+- Rodapé.
+- Banners.
+- Menus.
+- Cards.
+- Títulos.
+- Textos.
+- Imagens.
+
+## Biblioteca de componentes
+
+Permitir adicionar:
+
+- Banners.
+- Carrosséis.
+- Vitrines.
+- Produtos em destaque.
+- Coleções.
+- Categorias.
+- Marcas.
+- Galerias.
+- Vídeos.
+- Textos.
+- Depoimentos reais.
+- Benefícios.
+- Perguntas frequentes.
+- Faixas promocionais.
+- Contadores de ofertas.
+- Botões.
+- Links para redes sociais.
+
+## Gestão de seções
+
+Cada seção deverá permitir:
+
+- Adicionar.
+- Editar.
+- Duplicar.
+- Ocultar.
+- Excluir.
+- Reordenar.
+- Configurar.
+- Alterar conteúdo.
+
+Implementar drag and drop.
+
+## Páginas
+
+Permitir criar e editar:
+
+- Página inicial.
+- Catálogo.
+- Ofertas.
+- Lançamentos.
+- Marcas.
+- Sobre nós.
+- Contato.
+- Perguntas frequentes.
+- Páginas personalizadas.
+
+## Banners
+
+Permitir:
+
+- Upload de imagens.
+- Edição de títulos.
+- Edição de subtítulos.
+- Botões.
+- Links.
+- Posicionamento.
+- Imagens desktop.
+- Imagens mobile.
+- Agendamento.
+- Ativação e desativação.
+
+## Vitrines
+
+Criar coleções administráveis:
+
+- Mais vendidos.
+- Novidades.
+- Ofertas.
+- Últimas unidades.
+- Sneakers selecionados.
+- Produtos por marca.
+
+Permitir selecionar os produtos manualmente ou utilizar regras automáticas.
+
+## Edição em tempo real
+
+As mudanças deverão aparecer imediatamente na pré-visualização.
+
+Utilizar estado local para pré-visualização instantânea e sincronização com Firebase.
+
+Criar fluxo de publicação:
+
+1. Alterar o design.
+2. Visualizar.
+3. Salvar como rascunho.
+4. Revisar.
+5. Publicar.
+6. Atualizar automaticamente a loja pública.
+
+As alterações de conteúdo e design não deverão exigir um novo deploy no Netlify.
+
+Separar versão publicada de rascunho.
+
+## Salvamento automático
+
+Implementar:
+
+- Salvamento automático.
+- Indicador de gravação.
+- Histórico de versões.
+- Recuperação de rascunhos.
+- Desfazer.
+- Refazer.
+- Restaurar versão anterior.
+- Confirmação de exclusão.
+
+Não considerar uma alteração salva até o Firebase confirmar a gravação.
+
+Se houver falha de internet, preservar temporariamente as alterações e sincronizar quando a conexão voltar.
+
+---
+
+# 13. WHATSAPP E ATENDIMENTO
+
+Criar seção administrativa:
+
+"CONFIGURAÇÕES DO WHATSAPP"
+
+Permitir:
+
+- Configurar número oficial.
+- Alterar mensagem inicial.
+- Editar mensagem automática de pedido.
+- Configurar mensagem de acompanhamento.
+- Configurar formas de pagamento.
+- Cadastrar atendentes.
+- Distribuir pedidos.
+- Consultar pedidos encaminhados.
+
+Criar botão para abrir conversa diretamente pelo painel.
+
+Não inventar integração de leitura de mensagens.
+
+Integração com histórico de conversas recebidas e respostas dentro do painel somente poderá ser feita por meio da WhatsApp Business Platform oficial, quando configurada.
+
+---
+
+# 14. INFRAESTRUTURA DEFINITIVA — NETLIFY + FIREBASE
+
+ESTA É UMA REGRA OBRIGATÓRIA DO PROJETO.
+
+O site deverá permanecer hospedado no Netlify, utilizando o domínio próprio do proprietário.
+
+O Firebase será responsável pela persistência de todas as informações da loja.
+
+**Não utilizar armazenamento temporário do navegador como banco de dados principal.**
+
+## Netlify
+
+Utilizar para:
+
+- Hospedagem frontend.
+- Domínio personalizado.
+- HTTPS.
+- SSL.
+- Deploy.
+- Integração GitHub.
+- Variáveis de ambiente.
+- Redirecionamentos.
+- Configuração SPA.
+- Histórico de publicações.
+
+Preservar o domínio e a configuração DNS existentes.
+
+Não alterar o domínio sem autorização.
+
+Configurar deploy sem que atualizações do código apaguem os dados do banco.
+
+## Firebase Firestore
+
+Utilizar como banco de dados principal para:
+
+- Produtos.
+- Categorias.
+- Marcas.
+- Estoque.
+- Pedidos.
+- Clientes.
+- Atendentes.
+- Configurações.
+- Banners.
+- Páginas.
+- Coleções.
+- Editor visual.
+- Design.
+- Histórico de alterações.
+- Analytics.
+- Logs administrativos.
+
+## Firebase Authentication
+
+Utilizar para:
+
+- Proprietário.
+- Administradores.
+- Atendentes.
+- Clientes, quando habilitado.
+- Recuperação de senha.
+- Controle de sessões.
+- Permissões.
+
+## Firebase Storage
+
+Armazenar:
+
+- Logotipo.
+- Fotografias de produtos.
+- Banners.
+- Vídeos e imagens institucionais.
+- Fotografias das coleções.
+- Arquivos do editor visual.
+
+Não depender de caminhos locais do projeto para armazenar imagens da loja.
+
+## Firebase Functions
+
+Utilizar para operações seguras:
+
+- Criação de pedidos.
+- Validação de estoque.
+- Operações administrativas.
+- Processamento de dados privados.
+- Geração de identificadores.
+- Operações que exigem validação no servidor.
+
+Não colocar segredos no frontend.
+
+## Estrutura das coleções
+
+Criar estrutura organizada:
+
+- products
+- categories
+- brands
+- orders
+- customers
+- employees
+- store_settings
+- design_settings
+- banners
+- pages
+- collections
+- inventory
+- analytics
+- activity_logs
+- design_versions
+- faqs
+
+Utilizar identificadores únicos, timestamps e relacionamentos consistentes.
+
+---
+
+# 15. SINCRONIZAÇÃO EM TEMPO REAL
+
+Utilizar listeners do Firestore para sincronizar:
+
+- Produtos.
+- Estoque.
+- Preços.
+- Pedidos.
+- Status.
+- Configurações.
+- Design.
+- Banners.
+- Páginas.
+
+Quando o administrador modificar um produto, a atualização deverá aparecer na loja pública sem novo deploy.
+
+Implementar controle de cache e invalidação de dados para evitar informações antigas.
+
+Evitar consultas desnecessárias e controlar os custos de leitura e escrita.
+
+---
+
+# 16. BACKUPS E PROTEÇÃO PERMANENTE DOS DADOS
+
+Criar uma área chamada:
+
+"SEGURANÇA E BACKUPS"
+
+Implementar:
+
+- Backups programados do Firestore.
+- Exportações periódicas.
+- Histórico de versões.
+- Recuperação de dados.
+- Proteção contra exclusão acidental.
+- Monitoramento de falhas.
+- Procedimentos de restauração.
+
+Armazenar backups em local separado do banco principal.
+
+Mostrar:
+
+- Último backup.
+- Situação do backup.
+- Histórico.
+- Última sincronização.
+- Estado do Firebase.
+- Erros de gravação.
+
+A restauração deverá exigir autorização do proprietário.
+
+Nenhum deploy poderá recriar, limpar ou apagar o banco de dados.
+
+Não utilizar scripts de inicialização que sobrescrevam os dados existentes.
+
+---
+
+# 17. STATUS DO SISTEMA
+
+Criar uma seção administrativa chamada:
+
+"STATUS DO SISTEMA"
+
+Exibir:
+
+- Status da hospedagem.
+- Conexão Firebase.
+- Firestore.
+- Storage.
+- Authentication.
+- Última sincronização.
+- Último backup.
+- Última publicação.
+- Erros recentes.
+- Situação do domínio.
+
+Os indicadores deverão refletir verificações reais.
+
+Criar alertas quando houver falhas de conexão, gravação ou sincronização.
+
+---
+
+# 18. SEGURANÇA E LGPD
+
+Implementar:
+
+- Firebase Security Rules.
+- Storage Security Rules.
+- Autenticação segura.
+- Controle de acesso por função.
+- Proteção das rotas.
+- Validação no servidor.
+- Proteção contra SQL Injection e ataques comuns.
+- Limitação de tentativas de login.
+- Registro de atividades.
+- Proteção de dados pessoais.
+- Consentimento e transparência.
+- Política de privacidade.
+- Backups.
+
+Proteger informações dos clientes e impedir acesso indevido por outros usuários.
+
+Não confiar apenas na ocultação de páginas ou botões.
+
+---
+
+# 19. TECNOLOGIAS
+
+Frontend:
+- React.
+- TypeScript.
+- Tailwind CSS.
+- Componentes reutilizáveis.
+
+Backend e persistência:
+- Firebase Firestore.
+- Firebase Authentication.
+- Firebase Storage.
+- Firebase Functions.
+
+Hospedagem:
+- Netlify.
+
+Versionamento:
+- GitHub.
+
+Utilizar arquitetura organizada, escalável e documentada.
+
+Não utilizar Supabase como substituto do Firebase neste projeto.
+
+---
+
+# 20. EXPERIÊNCIA MOBILE
+
+Desenvolver com prioridade para celulares.
+
+Garantir:
+
+- Navegação simples.
+- Carregamento rápido.
+- Imagens otimizadas.
+- Menu responsivo.
+- Carrinho funcional.
+- Checkout fácil.
+- Seleção de numeração.
+- Botões acessíveis.
+- Editor visual adaptável.
+- Painel administrativo responsivo.
+
+Compatibilidade com Android, iPhone, tablets e computadores.
+
+---
+
+# 21. RODAPÉ
+
+Incluir:
+
+OFFSNEAKERS®
+SNEAKER RESELLER.
+
+Links:
+- Início.
+- Catálogo.
+- Sobre nós.
+- Contato.
+- Perguntas frequentes.
+- Política de privacidade.
+- Trocas e devoluções.
+- Entregas.
+
+Redes sociais:
+- Instagram.
+- WhatsApp.
+
+Utilizar apenas dados comerciais verdadeiros.
+
+---
+
+# 22. CONFIGURAÇÕES GERAIS
+
+Criar área para alterar:
+
+- Nome da empresa.
+- Logotipo.
+- Favicon.
+- Cores.
+- WhatsApp.
+- E-mail.
+- Redes sociais.
+- Informações comerciais.
+- Formas de pagamento.
+- Políticas.
+- Textos institucionais.
+- Configurações de entrega.
+
+Todas as alterações deverão ser persistentes no Firebase.
+
+---
+
+# 23. TESTES OBRIGATÓRIOS ANTES DA ENTREGA
+
+Realizar testes completos:
+
+1. Criar um produto.
+2. Atualizar a página.
+3. Confirmar que o produto continua salvo.
+4. Editar preço.
+5. Confirmar atualização na loja.
+6. Fazer upload de imagens.
+7. Confirmar persistência no Storage.
+8. Criar banner pelo editor.
+9. Publicar sem novo deploy.
+10. Criar página personalizada.
+11. Alterar design.
+12. Testar salvamento automático.
+13. Criar pedido.
+14. Confirmar registro no Firestore.
+15. Abrir WhatsApp com mensagem correta.
+16. Alterar status do pedido.
+17. Fazer logout e login.
+18. Confirmar persistência.
+19. Testar permissões de atendentes.
+20. Testar backup e recuperação.
+21. Realizar novo deploy no Netlify.
+22. Confirmar que nenhum dado foi perdido.
+23. Testar o domínio e HTTPS.
+24. Testar funcionamento em celulares.
+
+Não declarar integrações concluídas sem testes reais.
+
+---
+
+# 24. ORDEM DE DESENVOLVIMENTO
+
+Construir o projeto por etapas, mantendo uma única arquitetura integrada.
+
+ETAPA 1:
+Configurar repositório, Netlify, domínio e projeto Firebase.
+
+ETAPA 2:
+Configurar banco de dados, autenticação, regras de segurança e Storage.
+
+ETAPA 3:
+Construir identidade visual e homepage.
+
+ETAPA 4:
+Desenvolver catálogo, produtos, estoque e carrinho.
+
+ETAPA 5:
+Desenvolver checkout e integração com WhatsApp.
+
+ETAPA 6:
+Desenvolver histórico de pedidos e clientes.
+
+ETAPA 7:
+Desenvolver painel administrativo.
+
+ETAPA 8:
+Desenvolver editor visual e construtor de páginas.
+
+ETAPA 9:
+Desenvolver analytics, monitoramento e backups.
+
+ETAPA 10:
+Testar todas as integrações, corrigir erros e publicar.
+
+Não pular a configuração da persistência para começar apenas pela aparência.
+
+---
+
+# 25. INSTRUÇÕES FINAIS E INEGOCIÁVEIS
+
+O projeto deverá funcionar como uma verdadeira plataforma comercial.
+
+O proprietário deverá conseguir administrar a OFFSNEAKERS sem precisar editar código.
+
+Deverá conseguir:
+- Alterar o design em tempo real.
+- Trocar cores e tipografias.
+- Adicionar e remover seções.
+- Criar banners.
+- Adicionar imagens.
+- Criar páginas.
+- Organizar vitrines.
+- Cadastrar produtos.
+- Alterar preços.
+- Gerenciar estoque.
+- Receber pedidos.
+- Acompanhar clientes.
+- Configurar WhatsApp.
+- Consultar vendas.
+- Acompanhar visitantes.
+- Gerenciar backups.
+
+O Netlify deverá permanecer como hospedagem e o Firebase como infraestrutura central de persistência.
+
+Nenhum deploy poderá apagar informações.
+
+Nenhum dado comercial deverá depender exclusivamente do armazenamento do navegador.
+
+O sistema deverá possuir backups, recuperação, histórico de versões e monitoramento de erros.
+
+Não entregar somente telas demonstrativas.
+
+Não deixar botões sem funcionamento.
+
+Não utilizar dados fictícios como se fossem reais.
+
+Não criar integrações falsas.
+
+Se uma configuração externa for necessária, preparar a integração e informar exatamente quais credenciais e configurações o proprietário deverá fornecer.
+
+**RESULTADO FINAL: UMA LOJA VIRTUAL COMPLETA, PREMIUM, EDITÁVEL, ADMINISTRÁVEL, SEGURA E COM DADOS PERSISTENTES.**
+
+A identidade visual deverá seguir rigorosamente a referência enviada da OFFSNEAKERS.
+
+O cliente deverá ter uma experiência de compra profissional, desde a descoberta do produto até o atendimento pelo WhatsApp.
+
+O proprietário deverá possuir controle completo sobre o site, os produtos, os clientes, os pedidos e o design.
+
+OFFSNEAKERS® — SNEAKER RESELLER.
+
+EXCLUSIVIDADE NO ESTILO. PREÇOS FORA DO COMUM.

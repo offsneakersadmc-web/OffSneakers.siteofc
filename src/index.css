@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-off-red: #C9000B;
+    --color-off-darkred: #850008;
+    --color-off-black: #111111;
+    --color-off-surface: #181818;
+    --color-off-light: #F3F3F3;
+    --color-off-gray: #777777;
+    --font-heading: 'Bebas Neue', 'Anton', 'Barlow Condensed', sans-serif;
+    --font-body: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body {
+    background-color: #111111;
+    color: #FFFFFF;
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+}
+
+.font-display {
+  font-family: 'Bebas Neue', 'Barlow Condensed', 'Anton', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.font-condensed {
+  font-family: 'Barlow Condensed', sans-serif;
+}
+
+.font-anton {
+  font-family: 'Anton', sans-serif;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C9000B;
+}

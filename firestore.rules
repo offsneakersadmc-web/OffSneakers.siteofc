@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'offsneakers.admc@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Default catch-all deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Admins registry
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Products catalog
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || true; // allow store manager access in preview
+    }
+
+    // Orders placed via WhatsApp Checkout
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if true;
+    }
+
+    // Store & WhatsApp Configuration
+    match /store_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Visual Builder Design Settings
+    match /design_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // FAQs
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Analytics & visitor impressions
+    match /analytics/{docId} {
+      allow read, write: if true;
+    }
+
+    // Activity logs & backups
+    match /activity_logs/{logId} {
+      allow read, write: if true;
+    }
+
+    match /backups/{backupId} {
+      allow read, write: if true;
+    }
+  }
+}

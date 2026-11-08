@@ -1,0 +1,6 @@
+{
+  "name": "OFFSNEAKERS® — Sneaker Reseller",
+  "description": "Plataforma oficial e-commerce e catálogo exclusivo da OFFSNEAKERS®. Sneakers raros, lançamentos e streetwear com preços fora do padrão e checkout integrado ao WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
