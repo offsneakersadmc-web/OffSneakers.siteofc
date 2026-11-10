@@ -28,7 +28,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     brand: 'Jordan',
     model: 'Air Jordan 1 High',
     description: 'Um dos modelos mais icônicos da história da cultura sneaker. O Air Jordan 1 Chicago Lost & Found revive a silhueta clássica de 1985 com acabamento premium vintage em couro craquelado, caixa envelhecida original e recibo comemorativo. 100% autêntico e verificado item a item.',
-    images: ['/src/assets/images/product_jordan_retro_high_1794010895050.jpg'],
+    images: ['/assets/images/product_jordan_retro_high_1794010895050.jpg'],
     price: 1890,
     originalPrice: 2450,
     discountPercent: 22,
@@ -52,7 +52,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     brand: 'Jordan',
     model: 'Air Jordan 1 Low',
     description: 'Colaboração histórica entre Jordan Brand e o rapper Travis Scott. Apresenta o icônico swoosh invertido, camurça nobuck aveludada em tom olive militar, detalhes em couro premium branco e bordados Cactus Jack nos calcanhares.',
-    images: ['/src/assets/images/product_travis_scott_olive_1794010896906.jpg'],
+    images: ['/assets/images/product_travis_scott_olive_1794010896906.jpg'],
     price: 2490,
     originalPrice: 3800,
     discountPercent: 34,
@@ -76,7 +76,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     brand: 'Adidas',
     model: 'Yeezy Boost 350 V2',
     description: 'Máximo conforto com tecnologia de amortecimento Boost em toda a extensão da sola. Cabedal monocromático em Primeknit respirável translúcido e design futurista clean que combina com qualquer composição de streetwear.',
-    images: ['/src/assets/images/product_yeezy_boost_350_1794010895351.jpg'],
+    images: ['/assets/images/product_yeezy_boost_350_1794010895351.jpg'],
     price: 1390,
     originalPrice: 1850,
     discountPercent: 24,
@@ -100,7 +100,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     brand: 'Nike',
     model: 'Dunk Low',
     description: 'O sneaker mais versátil do streetwear mundial. Construção em couro legítimo macio com contraste clássico preto e branco, entressola de espuma leve e sola de borracha durável com ponto de giro tradicional do basquete dos anos 80.',
-    images: ['/src/assets/images/product_dunk_low_retro_1794010895819.jpg'],
+    images: ['/assets/images/product_dunk_low_retro_1794010895819.jpg'],
     price: 790,
     originalPrice: 1100,
     discountPercent: 28,
@@ -124,7 +124,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     brand: 'Jordan',
     model: 'Air Jordan 4',
     description: 'Construção estruturada imponente com painéis em couro branco liso, detalhes em camurça cinza neutra e asas de suporte pretas. Unidade Air visível no calcanhar que garante absorção de impacto com visual marcante.',
-    images: ['/src/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg'],
+    images: ['/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg'],
     price: 2190,
     originalPrice: 2950,
     discountPercent: 25,
@@ -152,7 +152,7 @@ export const INITIAL_BANNERS: Banner[] = [
     buttonText: 'EXPLORAR COLEÇÃO',
     buttonLink: 'catalog',
     badgeText: 'OFF.SNEAKERSOFC — SNEAKER RESELLER',
-    desktopImage: '/src/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg',
+    desktopImage: '/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg',
     focalPoint: 'center',
     objectFit: 'cover',
     active: true,
@@ -165,7 +165,7 @@ export const INITIAL_BANNERS: Banner[] = [
     buttonText: 'VER COLEÇÃO JORDAN',
     buttonLink: 'catalog?brand=Jordan',
     badgeText: 'DROPS EXCLUSIVOS',
-    desktopImage: '/src/assets/images/product_jordan_retro_high_1794010895050.jpg',
+    desktopImage: '/assets/images/product_jordan_retro_high_1794010895050.jpg',
     focalPoint: 'center',
     objectFit: 'cover',
     active: true,
@@ -178,7 +178,7 @@ export const INITIAL_BANNERS: Banner[] = [
     buttonText: 'CONHECER VANTAGENS',
     buttonLink: 'catalog',
     badgeText: 'ATENDIMENTO HUMANO',
-    desktopImage: '/src/assets/images/product_travis_scott_olive_1794010896906.jpg',
+    desktopImage: '/assets/images/product_travis_scott_olive_1794010896906.jpg',
     focalPoint: 'center',
     objectFit: 'cover',
     active: true,
@@ -216,7 +216,7 @@ export const INITIAL_DESIGN_SETTINGS: DesignSettings = {
   heroSubtitle: 'Descubra uma seleção exclusiva de sneakers e artigos de marcas reconhecidas com condições especiais.',
   heroButtonText: 'EXPLORAR COLEÇÃO',
   heroBadgeText: 'OFF.SNEAKERSOFC — SNEAKER RESELLER',
-  heroImage: '/src/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg',
+  heroImage: '/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg',
   announcementText: '🔥 SEDE EM SALVADOR, BA • ENVIAMOS PARA TODO O BRASIL • 100% AUTÊNTICOS • ATENDIMENTO VIP NO WHATSAPP • 5% OFF NO PIX',
   banners: INITIAL_BANNERS,
   carouselInterval: 6,
@@ -278,7 +278,7 @@ export const INITIAL_MEDIA: MediaItem[] = [
   {
     id: 'media-hero-urban',
     name: 'Hero Urban Subway Sneaker',
-    url: '/src/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg',
+    url: '/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg',
     category: 'banners',
     dimensions: '1920x1080',
     size: '420 KB',
@@ -287,7 +287,7 @@ export const INITIAL_MEDIA: MediaItem[] = [
   {
     id: 'media-jordan-chicago',
     name: 'Jordan 1 Retro High Chicago Lost & Found',
-    url: '/src/assets/images/product_jordan_retro_high_1794010895050.jpg',
+    url: '/assets/images/product_jordan_retro_high_1794010895050.jpg',
     category: 'products',
     dimensions: '1024x768',
     size: '280 KB',
@@ -296,7 +296,7 @@ export const INITIAL_MEDIA: MediaItem[] = [
   {
     id: 'media-travis-scott',
     name: 'Jordan 1 Low Travis Scott Reverse Mocha Olive',
-    url: '/src/assets/images/product_travis_scott_olive_1794010896906.jpg',
+    url: '/assets/images/product_travis_scott_olive_1794010896906.jpg',
     category: 'products',
     dimensions: '1024x768',
     size: '310 KB',
@@ -305,7 +305,7 @@ export const INITIAL_MEDIA: MediaItem[] = [
   {
     id: 'media-yeezy-350',
     name: 'Adidas Yeezy Boost 350 V2 Bone',
-    url: '/src/assets/images/product_yeezy_boost_350_1794010895351.jpg',
+    url: '/assets/images/product_yeezy_boost_350_1794010895351.jpg',
     category: 'products',
     dimensions: '1024x768',
     size: '260 KB',
@@ -314,7 +314,7 @@ export const INITIAL_MEDIA: MediaItem[] = [
   {
     id: 'media-dunk-panda',
     name: 'Nike Dunk Low Retro Panda',
-    url: '/src/assets/images/product_dunk_low_retro_1794010895819.jpg',
+    url: '/assets/images/product_dunk_low_retro_1794010895819.jpg',
     category: 'products',
     dimensions: '1024x768',
     size: '290 KB',
@@ -347,7 +347,11 @@ class StoreService {
   private loadFromStorage() {
     try {
       const p = localStorage.getItem('offsneakers_products');
-      this.localProducts = p ? JSON.parse(p) : INITIAL_PRODUCTS;
+      const rawProducts: Product[] = p ? JSON.parse(p) : INITIAL_PRODUCTS;
+      this.localProducts = rawProducts.map((prod) => ({
+        ...prod,
+        images: (prod.images || []).map((img) => img.startsWith('/src/assets/') ? img.replace('/src/assets/', '/assets/') : img)
+      }));
 
       const o = localStorage.getItem('offsneakers_orders');
       this.localOrders = o ? JSON.parse(o) : [];
@@ -365,13 +369,32 @@ class StoreService {
       }
 
       const d = localStorage.getItem('offsneakers_design');
-      this.localDesign = d ? { ...INITIAL_DESIGN_SETTINGS, ...JSON.parse(d) } : INITIAL_DESIGN_SETTINGS;
+      if (d) {
+        const parsedD = JSON.parse(d);
+        if (parsedD.heroImage?.startsWith('/src/assets/')) {
+          parsedD.heroImage = parsedD.heroImage.replace('/src/assets/', '/assets/');
+        }
+        if (parsedD.banners) {
+          parsedD.banners = parsedD.banners.map((b: Banner) => ({
+            ...b,
+            desktopImage: b.desktopImage?.startsWith('/src/assets/') ? b.desktopImage.replace('/src/assets/', '/assets/') : b.desktopImage,
+            mobileImage: b.mobileImage?.startsWith('/src/assets/') ? b.mobileImage.replace('/src/assets/', '/assets/') : b.mobileImage,
+          }));
+        }
+        this.localDesign = { ...INITIAL_DESIGN_SETTINGS, ...parsedD };
+      } else {
+        this.localDesign = INITIAL_DESIGN_SETTINGS;
+      }
 
       const f = localStorage.getItem('offsneakers_faqs');
       this.localFaqs = f ? JSON.parse(f) : INITIAL_FAQS;
 
       const m = localStorage.getItem('offsneakers_media');
-      this.localMedia = m ? JSON.parse(m) : INITIAL_MEDIA;
+      const rawMedia: MediaItem[] = m ? JSON.parse(m) : INITIAL_MEDIA;
+      this.localMedia = rawMedia.map((item) => ({
+        ...item,
+        url: item.url?.startsWith('/src/assets/') ? item.url.replace('/src/assets/', '/assets/') : item.url
+      }));
     } catch {
       this.localProducts = INITIAL_PRODUCTS;
       this.localOrders = [];
@@ -412,7 +435,13 @@ class StoreService {
       onSnapshot(productsRef, (snapshot) => {
         if (!snapshot.empty) {
           const list: Product[] = [];
-          snapshot.forEach((d) => list.push(d.data() as Product));
+          snapshot.forEach((d) => {
+            const data = d.data() as Product;
+            list.push({
+              ...data,
+              images: (data.images || []).map((img) => img.startsWith('/src/assets/') ? img.replace('/src/assets/', '/assets/') : img)
+            });
+          });
           this.localProducts = list;
           this.saveToStorage();
         }

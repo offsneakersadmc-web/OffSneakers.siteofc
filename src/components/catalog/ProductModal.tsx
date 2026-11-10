@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, ShieldCheck, MessageCircle, AlertCircle, ShoppingBag, Check } from 'lucide-react';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/format';
+import { resolveImageUrl, handleImageError } from '../../utils/imageHelper';
 
 interface ProductModalProps {
   product: Product | null;
@@ -79,7 +80,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             <div>
               <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#222222] flex items-center justify-center p-4">
                 <img
-                  src={product.images[activeImageIndex] || product.images[0]}
+                  src={resolveImageUrl(product.images[activeImageIndex] || product.images[0])}
+                  onError={handleImageError}
                   alt={product.name}
                   className="w-full h-full object-contain"
                   referrerPolicy="no-referrer"
@@ -104,7 +106,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                           : 'border-zinc-700/60 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <img src={img} alt="Miniatura" className="w-full h-full object-contain" />
+                      <img
+                        src={resolveImageUrl(img)}
+                        onError={handleImageError}
+                        alt="Miniatura"
+                        className="w-full h-full object-contain"
+                      />
                     </button>
                   ))}
                 </div>

@@ -26,7 +26,8 @@ import {
   RefreshCw,
   Copy,
   ChevronRight,
-  Eye
+  Eye,
+  Activity
 } from 'lucide-react';
 import {
   Product,
@@ -40,6 +41,9 @@ import {
 import { formatCurrency, formatPhone } from '../../utils/format';
 import { storeService } from '../../services/storeService';
 import { dispatchOrderEmailNotifications } from '../../services/emailService';
+import { adminAuthService, AdminUser } from '../../services/adminAuthService';
+import { TechnicalDiagnosticPanel } from './TechnicalDiagnosticPanel';
+import { resolveImageUrl, handleImageError } from '../../utils/imageHelper';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -63,12 +67,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Strict Security: In-memory only state. Never stored in localStorage, sessionStorage, or cookies.
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [adminUser, setAdminUser] = useState<{
-    login: string;
-    email: string;
-    displayName: string;
-    role: string;
-  } | null>(null);
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
 
   // Form inputs: Strictly initialized to empty strings with zero autofill
   const [authLogin, setAuthLogin] = useState('');
@@ -93,7 +92,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'orders' | 'products' | 'brands' | 'media' | 'banners' | 'whatsapp' | 'security'
+    'overview' | 'orders' | 'products' | 'brands' | 'media' | 'banners' | 'whatsapp' | 'security' | 'diagnostic'
   >('overview');
 
   // Order modal state
@@ -131,30 +130,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsLoggingIn(true);
 
     try {
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          login: authLogin.trim(),
-          password: authPassword,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success && data.token) {
-        setSessionToken(data.token);
-        setAdminUser(data.user);
+      const res = await adminAuthService.login(authLogin, authPassword);
+      if (res.success && res.user) {
         setIsAuthenticated(true);
+        setAdminUser(res.user);
+        setSessionToken(adminAuthService.getSessionToken());
         setAuthError('');
-        // Instantly wipe password from React state
+        // Instantly wipe password from React memory
         setAuthPassword('');
       } else {
-        setAuthError(data.error || 'Credenciais inválidas. Verifique os dados informados.');
+        setAuthError(res.error || 'Credenciais inválidas. Verifique os dados informados.');
         setAuthPassword('');
       }
     } catch {
-      setAuthError('Falha de conexão com o servidor de autenticação.');
+      setAuthError('Falha ao processar autenticação.');
       setAuthPassword('');
     } finally {
       setIsLoggingIn(false);
@@ -162,16 +151,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleLogout = async () => {
-    try {
-      if (sessionToken) {
-        await fetch('/api/admin/logout', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${sessionToken}` },
-        });
-      }
-    } catch {}
-
-    // Complete in-memory wipe
+    await adminAuthService.logout();
     setSessionToken(null);
     setAdminUser(null);
     setIsAuthenticated(false);
@@ -898,6 +878,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <ShieldCheck className="w-4 h-4" />
             <span>Segurança & Backups</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('diagnostic')}
+            className={`py-3 border-b-2 cursor-pointer transition-colors whitespace-nowrap flex items-center gap-2 ${
+              activeTab === 'diagnostic'
+                ? 'border-[#C9000B] text-[#C9000B]'
+                : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            <span>Diagnóstico Técnico</span>
+          </button>
         </nav>
       </div>
 
@@ -1204,7 +1196,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   >
                     <div className="flex gap-4">
                       <img
-                        src={product.images[0]}
+                        src={resolveImageUrl(product.images?.[0])}
+                        onError={handleImageError}
                         alt={product.name}
                         className="w-20 h-20 object-contain bg-zinc-950 rounded-xl p-1 shrink-0"
                       />
@@ -1405,7 +1398,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <div className="relative h-44 bg-zinc-950 overflow-hidden">
                     <img
-                      src={banner.desktopImage}
+                      src={resolveImageUrl(banner.desktopImage)}
+                      onError={handleImageError}
                       alt={banner.title}
                       className="w-full h-full object-cover"
                       style={{ objectPosition: banner.focalPoint || 'center' }}
@@ -1489,7 +1483,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <div className="aspect-square bg-zinc-950 p-2 flex items-center justify-center relative">
                     <img
-                      src={item.url}
+                      src={resolveImageUrl(item.url)}
+                      onError={handleImageError}
                       alt={item.name}
                       className="w-full h-full object-contain"
                     />
@@ -1813,6 +1808,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
         )}
+
+        {/* TECHNICAL DIAGNOSTIC PANEL (NETLIFY / FIREBASE / PRODUCTION AUDIT) */}
+        {activeTab === 'diagnostic' && (
+          <TechnicalDiagnosticPanel
+            products={products}
+            orders={orders}
+            banners={designSettings.banners || []}
+            onTriggerBackup={handleDownloadBackup}
+          />
+        )}
       </main>
 
       {/* Order Detail Modal with Email Resend Action */}
@@ -1942,7 +1947,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [brand, setBrand] = useState(product?.brand || brands[0] || 'Jordan');
   const [model, setModel] = useState(product?.model || '');
   const [description, setDescription] = useState(product?.description || '');
-  const [images, setImages] = useState<string[]>(product?.images || ['/src/assets/images/product_jordan_retro_high_1794010895050.jpg']);
+  const [images, setImages] = useState<string[]>(product?.images || ['/assets/images/product_jordan_retro_high_1794010895050.jpg']);
   const [price, setPrice] = useState(product?.price || 1200);
   const [originalPrice, setOriginalPrice] = useState(product?.originalPrice || 1600);
   const [discountPercent, setDiscountPercent] = useState(product?.discountPercent || 25);
@@ -2223,7 +2228,7 @@ const BannerFormModal: React.FC<BannerFormModalProps> = ({ banner, onClose, onSa
   const [buttonText, setButtonText] = useState(banner?.buttonText || 'EXPLORAR COLEÇÃO');
   const [buttonLink, setButtonLink] = useState(banner?.buttonLink || 'catalog');
   const [desktopImage, setDesktopImage] = useState(
-    banner?.desktopImage || '/src/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg'
+    banner?.desktopImage || '/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg'
   );
   const [mobileImage, setMobileImage] = useState(banner?.mobileImage || '');
   const [focalPoint, setFocalPoint] = useState<'center' | 'top' | 'bottom' | 'left' | 'right'>(

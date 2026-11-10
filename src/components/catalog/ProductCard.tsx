@@ -2,6 +2,7 @@ import React from 'react';
 import { Eye, ShoppingBag } from 'lucide-react';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/format';
+import { resolveImageUrl, handleImageError } from '../../utils/imageHelper';
 
 interface ProductCardProps {
   product: Product;
@@ -30,7 +31,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Image Container with Consistent Aspect Ratio */}
         <div className="relative aspect-[4/3] w-full bg-[#202020] overflow-hidden flex items-center justify-center p-3">
           <img
-            src={product.images[0] || '/src/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg'}
+            src={resolveImageUrl(product.images?.[0])}
+            onError={handleImageError}
             alt={product.name}
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
             loading="lazy"

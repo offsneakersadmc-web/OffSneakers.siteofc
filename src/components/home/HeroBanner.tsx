@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ShieldCheck, Flame, Zap, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { DesignSettings, Banner } from '../../types';
+import { resolveImageUrl, handleImageError } from '../../utils/imageHelper';
 
 interface HeroBannerProps {
   designSettings: DesignSettings;
@@ -28,8 +29,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             buttonText: designSettings.heroButtonText || 'EXPLORAR COLEÇÃO',
             buttonLink: 'catalog',
             badgeText: designSettings.heroBadgeText || 'OFF.SNEAKERSOFC — SNEAKER RESELLER',
-            desktopImage: designSettings.heroImage || '/src/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg',
-            mobileImage: designSettings.heroMobileImage,
+            desktopImage: resolveImageUrl(designSettings.heroImage || '/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg'),
+            mobileImage: designSettings.heroMobileImage ? resolveImageUrl(designSettings.heroMobileImage) : undefined,
             focalPoint: 'center',
             objectFit: 'cover',
             active: true,
@@ -144,10 +145,11 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               <div className="relative rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl">
                 <picture>
                   {currentBanner.mobileImage && (
-                    <source media="(max-width: 640px)" srcSet={currentBanner.mobileImage} />
+                    <source media="(max-width: 640px)" srcSet={resolveImageUrl(currentBanner.mobileImage)} />
                   )}
                   <img
-                    src={currentBanner.desktopImage}
+                    src={resolveImageUrl(currentBanner.desktopImage)}
+                    onError={handleImageError}
                     alt={currentBanner.title}
                     className="w-full h-[280px] sm:h-[380px] lg:h-[420px] object-cover transition-transform duration-700"
                     style={{

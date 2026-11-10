@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, X, ArrowRight } from 'lucide-react';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/format';
+import { resolveImageUrl, handleImageError } from '../../utils/imageHelper';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -83,7 +84,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 className="w-full p-3 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 flex items-center gap-4 text-left transition-colors cursor-pointer group"
               >
                 <img
-                  src={product.images[0]}
+                  src={resolveImageUrl(product.images?.[0])}
+                  onError={handleImageError}
                   alt={product.name}
                   className="w-14 h-14 object-contain bg-zinc-950 rounded-lg p-1 shrink-0"
                 />

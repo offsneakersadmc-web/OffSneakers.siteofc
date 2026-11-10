@@ -1,0 +1,10 @@
+# OFF.SNEAKERSOFC — Netlify Production Routing Configuration
+# 1. Rewrite any legacy /src/assets/ requests directly to /assets/
+/src/assets/images/*  /assets/images/:splat  200
+/src/assets/*         /assets/:splat         200
+
+# 2. Netlify Functions API proxy (if serverless functions are deployed)
+/api/*                /.netlify/functions/server/:splat  200
+
+# 3. Single Page Application (SPA) client routing fallback
+/*                    /index.html            200
