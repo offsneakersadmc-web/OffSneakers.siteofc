@@ -22,10 +22,44 @@
         "newRelease": { "type": "boolean", "description": "Whether highlighted in Novidades / Lançamentos" },
         "status": { "type": "string", "description": "active | out_of_stock | archived" },
         "sku": { "type": "string", "description": "Stock keeping unit identifier" },
+        "pricingMode": { "type": "string", "description": "shared | individual" },
+        "descriptionMode": { "type": "string", "description": "shared | individual" },
+        "specsMode": { "type": "string", "description": "shared | individual" },
+        "specs": { "type": "array", "description": "Technical specifications array" },
+        "versions": { "type": "array", "description": "Product versions / colorways / editions with independent galleries and inventory" },
         "createdAt": { "type": "string", "description": "ISO timestamp of creation" },
         "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
       },
       "required": ["id", "name", "brand", "price", "status"]
+    },
+    "ProductVersion": {
+      "title": "ProductVersion",
+      "description": "Independent version/edition/colorway belonging to a main product with isolated images, pricing, specs, sizes and inventory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique version identifier" },
+        "productId": { "type": "string", "description": "Parent product ID" },
+        "name": { "type": "string", "description": "Version short name" },
+        "editionName": { "type": "string", "description": "Commercial edition display name" },
+        "colorName": { "type": "string", "description": "Colorway name" },
+        "colorHex": { "type": "string", "description": "Hex color indicator" },
+        "description": { "type": "string", "description": "Version-specific description" },
+        "specs": { "type": "array", "description": "Version-specific technical specs" },
+        "images": { "type": "array", "description": "Exclusive image gallery URLs for this version" },
+        "price": { "type": "number", "description": "Version selling price in BRL" },
+        "originalPrice": { "type": "number", "description": "Reference price before discount" },
+        "discountPercent": { "type": "number", "description": "Discount percentage" },
+        "costPrice": { "type": "number", "description": "Internal cost price" },
+        "sku": { "type": "string", "description": "Version SKU" },
+        "barcode": { "type": "string", "description": "EAN / Barcode" },
+        "sizes": { "type": "array", "description": "Available sizes for this version" },
+        "inventory": { "type": "object", "description": "Stock quantity map per size" },
+        "active": { "type": "boolean", "description": "Whether version is purchasable" },
+        "hidden": { "type": "boolean", "description": "Temporarily hidden from storefront without deleting" },
+        "isDefault": { "type": "boolean", "description": "Default version selected on product page" },
+        "order": { "type": "number", "description": "Display order index" }
+      },
+      "required": ["id", "productId", "name", "price", "active"]
     },
     "Order": {
       "title": "Order",
@@ -34,7 +68,7 @@
       "properties": {
         "id": { "type": "string", "description": "Unique order code e.g. OS-000101" },
         "customer": { "type": "object", "description": "Customer details name, phone, email, address" },
-        "items": { "type": "array", "description": "Array of purchased items, sizes and prices" },
+        "items": { "type": "array", "description": "Array of purchased items with immutable version snapshots, sizes and prices" },
         "subtotal": { "type": "number", "description": "Subtotal in BRL" },
         "discount": { "type": "number", "description": "Applied discount in BRL" },
         "shipping": { "type": "number", "description": "Shipping cost or 0 if a combinar" },
@@ -45,6 +79,8 @@
         "trackingCode": { "type": "string", "description": "Carrier tracking code" },
         "attendant": { "type": "string", "description": "Staff member assigned" },
         "whatsappUrl": { "type": "string", "description": "Official WhatsApp deep link" },
+        "stockDeducted": { "type": "boolean", "description": "Whether stock was atomically deducted" },
+        "stockRestored": { "type": "boolean", "description": "Whether stock was restored after cancellation" },
         "createdAt": { "type": "string", "description": "Timestamp of order submission" },
         "updatedAt": { "type": "string", "description": "Timestamp of status update" }
       },
@@ -55,7 +91,7 @@
       "description": "General store, contact, and WhatsApp business configuration",
       "type": "object",
       "properties": {
-        "storeName": { "type": "string", "description": "OFFSNEAKERS" },
+        "storeName": { "type": "string", "description": "OFF.SNEAKERSOFC" },
         "slogan": { "type": "string", "description": "SNEAKER RESELLER." },
         "whatsappNumber": { "type": "string", "description": "Official WhatsApp number e.g. 5511999999999" },
         "whatsappWelcomeMsg": { "type": "string", "description": "Default customer chat initiation message" },
@@ -95,12 +131,29 @@
         "order": { "type": "number", "description": "Display order" }
       },
       "required": ["id", "question", "answer"]
+    },
+    "MediaItem": {
+      "title": "MediaItem",
+      "description": "Media library asset reference",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "category": { "type": "string" },
+        "uploadedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "url"]
     }
   },
   "firestore": {
     "/products/{productId}": {
       "schema": { "$ref": "#/entities/Product" },
       "description": "Collection of sneakers and streetwear items"
+    },
+    "/product_versions/{versionId}": {
+      "schema": { "$ref": "#/entities/ProductVersion" },
+      "description": "Normalized collection of product versions/editions with isolated stock and galleries"
     },
     "/orders/{orderId}": {
       "schema": { "$ref": "#/entities/Order" },
@@ -121,6 +174,10 @@
     "/faqs/{faqId}": {
       "schema": { "$ref": "#/entities/Faq" },
       "description": "FAQ items editable by store administrators"
+    },
+    "/media/{mediaId}": {
+      "schema": { "$ref": "#/entities/MediaItem" },
+      "description": "Media library items for products and banners"
     }
   }
 }

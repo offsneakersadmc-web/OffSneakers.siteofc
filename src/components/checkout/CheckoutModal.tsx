@@ -5,6 +5,12 @@ import { CartItem, CustomerData, Order, StoreSettings } from '../../types';
 import { formatCurrency, formatPhone } from '../../utils/format';
 import { storeService } from '../../services/storeService';
 import { dispatchOrderEmailNotifications } from '../../services/emailService';
+import {
+  getAllVersions,
+  getCartItemKey,
+  getEffectiveVersionDescription,
+  getEffectiveVersionSpecs,
+} from '../../utils/versionHelper';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -43,7 +49,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   if (!isOpen) return null;
 
-  const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  const subtotal = cart.reduce((acc, item) => {
+    const unit = Number(item.unitPrice ?? item.product.price ?? 0);
+    return acc + unit * item.quantity;
+  }, 0);
   const pixDiscount = paymentMethod === 'PIX' ? Math.round(subtotal * (storeSettings.pixDiscountPercent / 100)) : 0;
   const total = subtotal - pixDiscount;
 
@@ -117,21 +126,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const orderCount = storeService.getOrders().length + 101;
       const orderId = `#OS-${String(orderCount).padStart(6, '0')}`;
 
-      // 4. Products text for WhatsApp
+      // 4. Products text for WhatsApp with exact Version & Price Breakdown
       const productsText = cart
-        .map(
-          (item) =>
-            `${item.product.name}\nTamanho: ${item.size}\nQuantidade: ${item.quantity}\nValor: ${formatCurrency(
-              item.product.price
-            )}`
-        )
+        .map((item) => {
+          const unit = Number(item.unitPrice ?? item.product.price ?? 0);
+          const itemSub = unit * item.quantity;
+          const versionTitle = item.editionName || item.versionName || 'Edição Padrão';
+          const colorInfo = item.colorName ? ` (${item.colorName})` : '';
+          const skuInfo = item.sku ? `\nSKU: ${item.sku}` : '';
+          return `${item.product.name}\nVersão: ${versionTitle}${colorInfo}${skuInfo}\nTamanho: ${item.size}\nQuantidade: ${item.quantity}\nPreço unitário: ${formatCurrency(
+            unit
+          )}\nSubtotal: ${formatCurrency(itemSub)}`;
+        })
         .join('\n\n');
 
       const fullAddress = `${customer.street}, Nº ${customer.number}${
         customer.complement ? ' - ' + customer.complement : ''
       }, Bairro: ${customer.neighborhood}, Cidade: ${customer.city}/${customer.state} - CEP: ${customer.cep}`;
 
-      // 5. Structure official WhatsApp message (exact format from user specification)
+      // 5. Structure official WhatsApp message
       const whatsappMsg =
 `NOVO PEDIDO — OFF.SNEAKERSOFC
 
@@ -164,21 +177,32 @@ Gostaria de receber as informações para realizar o pagamento e concluir meu pe
 
 Obrigado por escolher a OFF.SNEAKERSOFC!`;
 
-      // 6. Assemble Order Record
+      // 6. Assemble Immutable Order Record with full version snapshots
       const newOrder: Order = {
         id: orderId,
         customer,
-        items: cart.map((i) => ({
-          productId: i.product.id,
-          name: i.product.name,
-          brand: i.product.brand,
-          size: i.size,
-          quantity: i.quantity,
-          unitPrice: i.product.price,
-          totalPrice: i.product.price * i.quantity,
-          image: i.product.images[0],
-          sku: i.product.sku,
-        })),
+        items: cart.map((i) => {
+          const unit = Number(i.unitPrice ?? i.product.price ?? 0);
+          const ver = getAllVersions(i.product).find((v) => v.id === i.versionId);
+          return {
+            productId: i.product.id,
+            versionId: i.versionId || ver?.id,
+            name: i.product.name,
+            versionName: i.versionName || ver?.name,
+            editionName: i.editionName || ver?.editionName,
+            colorName: i.colorName || ver?.colorName,
+            brand: i.product.brand,
+            size: i.size,
+            quantity: i.quantity,
+            unitPrice: unit,
+            totalPrice: unit * i.quantity,
+            discountPercent: i.discountPercent ?? ver?.discountPercent,
+            image: i.image || ver?.images?.[0] || i.product.images[0],
+            sku: i.sku || ver?.sku || i.product.sku,
+            descriptionSnapshot: getEffectiveVersionDescription(i.product, ver),
+            specsSnapshot: getEffectiveVersionSpecs(i.product, ver),
+          };
+        }),
         subtotal,
         discount: pixDiscount,
         shipping: 0,
@@ -188,10 +212,12 @@ Obrigado por escolher a OFF.SNEAKERSOFC!`;
         notes: 'Pedido registrado via Checkout WhatsApp & E-mail',
         whatsappMessage: whatsappMsg,
         emailNotificationStatus: 'pending',
+        stockDeducted: true,
+        stockRestored: false,
         history: [
           {
             timestamp: new Date().toISOString(),
-            action: 'Pedido criado pelo cliente no site',
+            action: 'Pedido criado pelo cliente no site (estoque reservado atomicamente)',
             operator: 'Cliente',
             note: `Forma: ${paymentMethod}`,
           },
@@ -200,14 +226,11 @@ Obrigado por escolher a OFF.SNEAKERSOFC!`;
         updatedAt: new Date().toISOString(),
       };
 
-      // 7. Save to Firebase Firestore BEFORE opening WhatsApp
-      await storeService.createOrder(newOrder);
+      // 7. Save Order & Decrement Exact Version+Size Stock Atomically via Firestore Transaction
+      const savedOrder = await storeService.placeOrderAtomic(newOrder, cart);
 
-      // 8. Decrement inventory
-      await storeService.decrementOrderStock(cart);
-
-      // 9. Dispatch Automated Email Notifications to Admin & Client
-      dispatchOrderEmailNotifications(newOrder, storeSettings)
+      // 8. Dispatch Automated Email Notifications to Admin & Client
+      dispatchOrderEmailNotifications(savedOrder, storeSettings)
         .then((res) => {
           setEmailStatusNote(res.message);
         })
@@ -215,7 +238,7 @@ Obrigado por escolher a OFF.SNEAKERSOFC!`;
           setEmailStatusNote('Resumo arquivado para envio administrativo.');
         });
 
-      // 10. Trigger celebration confetti
+      // 9. Trigger celebration confetti
       confetti({
         particleCount: 90,
         spread: 70,
@@ -223,16 +246,20 @@ Obrigado por escolher a OFF.SNEAKERSOFC!`;
         colors: ['#C9000B', '#FFFFFF', '#111111'],
       });
 
-      setCompletedOrder(newOrder);
-      onOrderSuccess(newOrder);
+      setCompletedOrder(savedOrder);
+      onOrderSuccess(savedOrder);
 
-      // 11. Open official WhatsApp deep link
+      // 10. Open official WhatsApp deep link
       const encodedMsg = encodeURIComponent(whatsappMsg);
       const whatsappUrl = `https://wa.me/${storeSettings.whatsappNumber}?text=${encodedMsg}`;
       window.open(whatsappUrl, '_blank');
     } catch (err) {
       console.error(err);
-      setErrorMessage('Houve um erro ao processar seu pedido. Tente novamente.');
+      setErrorMessage(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Houve um erro ao processar seu pedido. Tente novamente.'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -350,16 +377,26 @@ Obrigado por escolher a OFF.SNEAKERSOFC!`;
                 Resumo dos Itens ({cart.length})
               </span>
               <div className="space-y-2">
-                {cart.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="text-zinc-200 truncate mr-2">
-                      {item.product.name} (Tam: {item.size}) × {item.quantity}
-                    </span>
-                    <span className="font-mono text-white font-semibold">
-                      {formatCurrency(item.product.price * item.quantity)}
-                    </span>
-                  </div>
-                ))}
+                {cart.map((item) => {
+                  const unit = Number(item.unitPrice ?? item.product.price ?? 0);
+                  const versionLabel = item.editionName || item.versionName;
+                  return (
+                    <div
+                      key={getCartItemKey(item.product.id, item.versionId, item.size)}
+                      className="flex justify-between items-start gap-2 text-xs"
+                    >
+                      <div className="text-zinc-200 min-w-0">
+                        <span className="font-semibold block truncate">{item.product.name}</span>
+                        <span className="text-[11px] text-zinc-400 block truncate">
+                          {versionLabel ? `Versão: ${versionLabel} • ` : ''}Tam: {item.size} × {item.quantity} ({formatCurrency(unit)}/un)
+                        </span>
+                      </div>
+                      <span className="font-mono tabular-nums text-white font-semibold shrink-0">
+                        {formatCurrency(unit * item.quantity)}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

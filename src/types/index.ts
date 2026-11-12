@@ -1,9 +1,51 @@
+export interface ProductSpec {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface ProductImageMeta {
+  objectFit?: 'contain' | 'cover';
+  focalPoint?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+}
+
+export interface ProductVersion {
+  id: string;
+  productId: string;
+  name: string;
+  editionName?: string;
+  colorName: string;
+  colorHex?: string;
+  description?: string;
+  specs?: ProductSpec[];
+  images: string[];
+  imageMeta?: Record<string, ProductImageMeta>;
+  price: number;
+  originalPrice?: number;
+  discountPercent?: number;
+  costPrice?: number;
+  sku?: string;
+  barcode?: string;
+  weightGrams?: number;
+  dimensionsCm?: string;
+  sizes: string[];
+  inventory: Record<string, number>;
+  active: boolean;
+  hidden?: boolean;
+  isDefault?: boolean;
+  isFeatured?: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   brand: string;
   model: string;
   description: string;
+  specs?: ProductSpec[];
   images: string[];
   price: number;
   originalPrice?: number;
@@ -19,12 +61,26 @@ export interface Product {
   status: 'active' | 'out_of_stock' | 'archived';
   sku?: string;
   condition?: string;
+  pricingMode?: 'shared' | 'individual';
+  descriptionMode?: 'shared' | 'individual';
+  specsMode?: 'shared' | 'individual';
+  versions?: ProductVersion[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CartItem {
   product: Product;
+  versionId: string;
+  versionName: string;
+  editionName?: string;
+  colorName?: string;
+  colorHex?: string;
+  image?: string;
+  unitPrice: number;
+  originalPrice?: number;
+  discountPercent?: number;
+  sku?: string;
   size: string;
   quantity: number;
 }
@@ -55,14 +111,21 @@ export type OrderStatus =
 
 export interface OrderItem {
   productId: string;
+  versionId?: string;
   name: string;
+  versionName?: string;
+  editionName?: string;
+  colorName?: string;
   brand: string;
   size: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  discountPercent?: number;
   image?: string;
   sku?: string;
+  descriptionSnapshot?: string;
+  specsSnapshot?: ProductSpec[];
 }
 
 export interface OrderHistoryEntry {
@@ -90,6 +153,9 @@ export interface Order {
   customerEmailStatus?: 'pending' | 'sent' | 'failed' | 'not_configured';
   emailSentAt?: string;
   emailErrorMessage?: string;
+  stockDeducted?: boolean;
+  stockRestored?: boolean;
+  stockRestoredAt?: string;
   history?: OrderHistoryEntry[];
   createdAt: string;
   updatedAt: string;

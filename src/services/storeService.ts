@@ -6,11 +6,15 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
-  onSnapshot
+  onSnapshot,
+  runTransaction,
+  query,
+  where
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import {
   Product,
+  ProductVersion,
   Order,
   StoreSettings,
   DesignSettings,
@@ -20,14 +24,28 @@ import {
   CartItem,
   OrderStatus
 } from '../types';
+import {
+  syncProductSummaryFromVersions,
+  getAllVersions,
+  getDefaultVersion,
+  getVersionSizeStock,
+  cleanFirestoreData
+} from '../utils/versionHelper';
+
+const SEED_TIME = new Date().toISOString();
 
 export const INITIAL_PRODUCTS: Product[] = [
-  {
+  syncProductSummaryFromVersions({
     id: 'prod-jordan-1-chicago',
-    name: "Air Jordan 1 Retro High OG 'Chicago' Lost & Found",
+    name: 'Air Jordan 1 Retro High OG',
     brand: 'Jordan',
     model: 'Air Jordan 1 High',
-    description: 'Um dos modelos mais icônicos da história da cultura sneaker. O Air Jordan 1 Chicago Lost & Found revive a silhueta clássica de 1985 com acabamento premium vintage em couro craquelado, caixa envelhecida original e recibo comemorativo. 100% autêntico e verificado item a item.',
+    description: 'Um dos modelos mais icônicos da história da cultura sneaker. Construção premium em couro legítimo, colarinho acolchoado e unidade Air encapsulada no calcanhar. 100% autêntico e verificado item a item pela curadoria OFF.SNEAKERSOFC.',
+    specs: [
+      { id: 'sp-1', label: 'Cabedal', value: 'Couro legítimo premium' },
+      { id: 'sp-2', label: 'Amortecimento', value: 'Nike Air encapsulado' },
+      { id: 'sp-3', label: 'Autenticidade', value: 'Legit check físico verificado' },
+    ],
     images: ['/assets/images/product_jordan_retro_high_1794010895050.jpg'],
     price: 1890,
     originalPrice: 2450,
@@ -43,15 +61,71 @@ export const INITIAL_PRODUCTS: Product[] = [
     status: 'active',
     sku: 'DZ5485-612',
     condition: 'Novo na Caixa Original com Tags',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
+    pricingMode: 'individual',
+    descriptionMode: 'individual',
+    specsMode: 'shared',
+    versions: [
+      {
+        id: 'ver-aj1-chicago-lf',
+        productId: 'prod-jordan-1-chicago',
+        name: "Chicago 'Lost & Found'",
+        editionName: "Air Jordan 1 High 'Chicago' Lost & Found",
+        colorName: 'Chicago Red / White / Black',
+        colorHex: '#C9000B',
+        description: "O clássico absoluto de 1985 reimaginado com couro craquelado vintage, caixa envelhecida comemorativa e recibo de época. Par 100% autêntico.",
+        images: ['/assets/images/product_jordan_retro_high_1794010895050.jpg'],
+        price: 1890,
+        originalPrice: 2450,
+        discountPercent: 22,
+        sku: 'DZ5485-612',
+        sizes: ['38', '39', '40', '41', '42', '43'],
+        inventory: { '38': 2, '39': 3, '40': 4, '41': 2, '42': 1, '43': 0 },
+        active: true,
+        hidden: false,
+        isDefault: true,
+        isFeatured: true,
+        order: 0,
+        createdAt: SEED_TIME,
+        updatedAt: SEED_TIME,
+      },
+      {
+        id: 'ver-aj1-bred-urban',
+        productId: 'prod-jordan-1-chicago',
+        name: 'Bred Urban Edition',
+        editionName: 'Air Jordan 1 High Bred / Varsity Red',
+        colorName: 'Preto / Vermelho / Branco',
+        colorHex: '#18181B',
+        description: 'Combinação lendária em preto e vermelho Varsity Red com acabamento fosco de alto contraste e cadarços extras inclusos.',
+        images: ['/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg'],
+        price: 2050,
+        originalPrice: 2590,
+        discountPercent: 20,
+        sku: '555088-063',
+        sizes: ['39', '40', '41', '42'],
+        inventory: { '39': 1, '40': 2, '41': 2, '42': 1 },
+        active: true,
+        hidden: false,
+        isDefault: false,
+        isFeatured: false,
+        order: 1,
+        createdAt: SEED_TIME,
+        updatedAt: SEED_TIME,
+      },
+    ],
+    createdAt: SEED_TIME,
+    updatedAt: SEED_TIME,
+  }),
+  syncProductSummaryFromVersions({
     id: 'prod-travis-scott-olive',
-    name: 'Air Jordan 1 Low x Travis Scott Reverse Mocha Olive',
+    name: 'Air Jordan 1 Low x Travis Scott',
     brand: 'Jordan',
     model: 'Air Jordan 1 Low',
-    description: 'Colaboração histórica entre Jordan Brand e o rapper Travis Scott. Apresenta o icônico swoosh invertido, camurça nobuck aveludada em tom olive militar, detalhes em couro premium branco e bordados Cactus Jack nos calcanhares.',
+    description: 'Colaboração histórica entre Jordan Brand e o rapper Travis Scott. Apresenta o icônico swoosh invertido, camurça nobuck aveludada e bordados Cactus Jack nos calcanhares.',
+    specs: [
+      { id: 'sp-ts-1', label: 'Cabedal', value: 'Nobuck premium & couro grão integral' },
+      { id: 'sp-ts-2', label: 'Detalhe', value: 'Swoosh invertido + Cactus Jack' },
+      { id: 'sp-ts-3', label: 'Acessórios', value: 'Card especial e cadarços extras' },
+    ],
     images: ['/assets/images/product_travis_scott_olive_1794010896906.jpg'],
     price: 2490,
     originalPrice: 3800,
@@ -67,15 +141,46 @@ export const INITIAL_PRODUCTS: Product[] = [
     status: 'active',
     sku: 'DM7866-162',
     condition: 'Novo na Caixa com Card Especial e Cadarços Extras',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
+    pricingMode: 'individual',
+    descriptionMode: 'shared',
+    specsMode: 'shared',
+    versions: [
+      {
+        id: 'ver-ts-reverse-olive',
+        productId: 'prod-travis-scott-olive',
+        name: 'Reverse Mocha Olive',
+        editionName: 'Air Jordan 1 Low Travis Scott Reverse Mocha Olive',
+        colorName: 'Medium Olive / Sail',
+        colorHex: '#4A5D3F',
+        images: ['/assets/images/product_travis_scott_olive_1794010896906.jpg'],
+        price: 2490,
+        originalPrice: 3800,
+        discountPercent: 34,
+        sku: 'DM7866-162',
+        sizes: ['38', '39', '40', '41', '42'],
+        inventory: { '38': 1, '39': 0, '40': 2, '41': 3, '42': 1 },
+        active: true,
+        hidden: false,
+        isDefault: true,
+        isFeatured: true,
+        order: 0,
+        createdAt: SEED_TIME,
+        updatedAt: SEED_TIME,
+      },
+    ],
+    createdAt: SEED_TIME,
+    updatedAt: SEED_TIME,
+  }),
+  syncProductSummaryFromVersions({
     id: 'prod-yeezy-boost-350',
-    name: 'Adidas Yeezy Boost 350 V2 Bone White Cream',
+    name: 'Adidas Yeezy Boost 350 V2',
     brand: 'Adidas',
     model: 'Yeezy Boost 350 V2',
-    description: 'Máximo conforto com tecnologia de amortecimento Boost em toda a extensão da sola. Cabedal monocromático em Primeknit respirável translúcido e design futurista clean que combina com qualquer composição de streetwear.',
+    description: 'Máximo conforto com tecnologia de amortecimento Boost em toda a extensão da sola. Cabedal em Primeknit respirável e design futurista clean.',
+    specs: [
+      { id: 'sp-yz-1', label: 'Cabedal', value: 'Primeknit respirável adaptativo' },
+      { id: 'sp-yz-2', label: 'Entressola', value: 'Full-length Adidas Boost' },
+    ],
     images: ['/assets/images/product_yeezy_boost_350_1794010895351.jpg'],
     price: 1390,
     originalPrice: 1850,
@@ -91,15 +196,46 @@ export const INITIAL_PRODUCTS: Product[] = [
     status: 'active',
     sku: 'HQ6316',
     condition: 'Novo na Caixa com etiquetas originais',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
+    pricingMode: 'shared',
+    descriptionMode: 'shared',
+    specsMode: 'shared',
+    versions: [
+      {
+        id: 'ver-yeezy-bone',
+        productId: 'prod-yeezy-boost-350',
+        name: 'Bone White Cream',
+        editionName: 'Yeezy Boost 350 V2 Bone White Cream',
+        colorName: 'Bone / Pure White',
+        colorHex: '#E5DEC9',
+        images: ['/assets/images/product_yeezy_boost_350_1794010895351.jpg'],
+        price: 1390,
+        originalPrice: 1850,
+        discountPercent: 24,
+        sku: 'HQ6316',
+        sizes: ['37', '38', '39', '40', '41', '42', '43', '44'],
+        inventory: { '37': 1, '38': 2, '39': 3, '40': 4, '41': 5, '42': 2, '43': 1, '44': 0 },
+        active: true,
+        hidden: false,
+        isDefault: true,
+        isFeatured: true,
+        order: 0,
+        createdAt: SEED_TIME,
+        updatedAt: SEED_TIME,
+      },
+    ],
+    createdAt: SEED_TIME,
+    updatedAt: SEED_TIME,
+  }),
+  syncProductSummaryFromVersions({
     id: 'prod-dunk-low-panda',
-    name: 'Nike Dunk Low Retro Black & White Panda',
+    name: 'Nike Dunk Low Retro',
     brand: 'Nike',
     model: 'Dunk Low',
-    description: 'O sneaker mais versátil do streetwear mundial. Construção em couro legítimo macio com contraste clássico preto e branco, entressola de espuma leve e sola de borracha durável com ponto de giro tradicional do basquete dos anos 80.',
+    description: 'O sneaker mais versátil do streetwear mundial. Construção em couro legítimo macio, entressola de espuma leve e sola de borracha durável com ponto de giro tradicional do basquete dos anos 80.',
+    specs: [
+      { id: 'sp-dk-1', label: 'Cabedal', value: 'Couro legítimo com perfurações na biqueira' },
+      { id: 'sp-dk-2', label: 'Solado', value: 'Borracha de tração clássica anos 80' },
+    ],
     images: ['/assets/images/product_dunk_low_retro_1794010895819.jpg'],
     price: 790,
     originalPrice: 1100,
@@ -115,15 +251,70 @@ export const INITIAL_PRODUCTS: Product[] = [
     status: 'active',
     sku: 'DD1391-100',
     condition: 'Novo na Caixa Original Lacrada',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
+    pricingMode: 'individual',
+    descriptionMode: 'individual',
+    specsMode: 'shared',
+    versions: [
+      {
+        id: 'ver-dunk-panda',
+        productId: 'prod-dunk-low-panda',
+        name: 'Panda (Black & White)',
+        editionName: 'Nike Dunk Low Retro Panda',
+        colorName: 'Branco / Preto',
+        colorHex: '#18181B',
+        description: 'Contraste clássico preto e branco que combina com qualquer peça de streetwear. Edição mais procurada da linha Dunk Low.',
+        images: ['/assets/images/product_dunk_low_retro_1794010895819.jpg'],
+        price: 790,
+        originalPrice: 1100,
+        discountPercent: 28,
+        sku: 'DD1391-100',
+        sizes: ['36', '37', '38', '39', '40', '41', '42', '43', '44'],
+        inventory: { '36': 2, '37': 3, '38': 4, '39': 5, '40': 8, '41': 6, '42': 4, '43': 2, '44': 1 },
+        active: true,
+        hidden: false,
+        isDefault: true,
+        isFeatured: true,
+        order: 0,
+        createdAt: SEED_TIME,
+        updatedAt: SEED_TIME,
+      },
+      {
+        id: 'ver-dunk-triple-white',
+        productId: 'prod-dunk-low-panda',
+        name: 'Triple White',
+        editionName: 'Nike Dunk Low Triple White Clean',
+        colorName: 'Branco Monocromático',
+        colorHex: '#F4F4F5',
+        description: 'Edição totalmente branca clean em couro liso premium, ideal para visual minimalista de alto impacto.',
+        images: ['/assets/images/product_yeezy_boost_350_1794010895351.jpg'],
+        price: 840,
+        originalPrice: 1150,
+        discountPercent: 26,
+        sku: 'DD1503-109',
+        sizes: ['38', '39', '40', '41', '42'],
+        inventory: { '38': 2, '39': 2, '40': 3, '41': 2, '42': 1 },
+        active: true,
+        hidden: false,
+        isDefault: false,
+        isFeatured: false,
+        order: 1,
+        createdAt: SEED_TIME,
+        updatedAt: SEED_TIME,
+      },
+    ],
+    createdAt: SEED_TIME,
+    updatedAt: SEED_TIME,
+  }),
+  syncProductSummaryFromVersions({
     id: 'prod-jordan-4-military-black',
-    name: 'Air Jordan 4 Retro Military Black Premium',
+    name: 'Air Jordan 4 Retro Military Black',
     brand: 'Jordan',
     model: 'Air Jordan 4',
-    description: 'Construção estruturada imponente com painéis em couro branco liso, detalhes em camurça cinza neutra e asas de suporte pretas. Unidade Air visível no calcanhar que garante absorção de impacto com visual marcante.',
+    description: 'Construção estruturada imponente com painéis em couro branco liso, detalhes em camurça cinza neutra e asas de suporte pretas. Unidade Air visível no calcanhar.',
+    specs: [
+      { id: 'sp-j4-1', label: 'Cabedal', value: 'Couro liso & camurça cinza' },
+      { id: 'sp-j4-2', label: 'Entressola', value: 'Unidade Nike Air visível no calcanhar' },
+    ],
     images: ['/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg'],
     price: 2190,
     originalPrice: 2950,
@@ -139,9 +330,36 @@ export const INITIAL_PRODUCTS: Product[] = [
     status: 'active',
     sku: 'DH6927-111',
     condition: 'Novo na Caixa com Hangtag Original',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
+    pricingMode: 'shared',
+    descriptionMode: 'shared',
+    specsMode: 'shared',
+    versions: [
+      {
+        id: 'ver-j4-military-black',
+        productId: 'prod-jordan-4-military-black',
+        name: 'Military Black Premium',
+        editionName: 'Air Jordan 4 Retro Military Black',
+        colorName: 'White / Black / Neutral Grey',
+        colorHex: '#71717A',
+        images: ['/assets/images/hero_sneaker_reseller_urban_1794010894924.jpg'],
+        price: 2190,
+        originalPrice: 2950,
+        discountPercent: 25,
+        sku: 'DH6927-111',
+        sizes: ['39', '40', '41', '42', '43'],
+        inventory: { '39': 1, '40': 3, '41': 4, '42': 2, '43': 0 },
+        active: true,
+        hidden: false,
+        isDefault: true,
+        isFeatured: true,
+        order: 0,
+        createdAt: SEED_TIME,
+        updatedAt: SEED_TIME,
+      },
+    ],
+    createdAt: SEED_TIME,
+    updatedAt: SEED_TIME,
+  })
 ];
 
 export const INITIAL_BANNERS: Banner[] = [
@@ -348,10 +566,14 @@ class StoreService {
     try {
       const p = localStorage.getItem('offsneakers_products');
       const rawProducts: Product[] = p ? JSON.parse(p) : INITIAL_PRODUCTS;
-      this.localProducts = rawProducts.map((prod) => ({
-        ...prod,
-        images: (prod.images || []).map((img) => img.startsWith('/src/assets/') ? img.replace('/src/assets/', '/assets/') : img)
-      }));
+      this.localProducts = rawProducts.map((prod) =>
+        syncProductSummaryFromVersions({
+          ...prod,
+          images: (prod.images || []).map((img) =>
+            img.startsWith('/src/assets/') ? img.replace('/src/assets/', '/assets/') : img
+          ),
+        })
+      );
 
       const o = localStorage.getItem('offsneakers_orders');
       this.localOrders = o ? JSON.parse(o) : [];
@@ -425,10 +647,15 @@ class StoreService {
     try {
       // Products sync
       const productsRef = collection(db, 'products');
+      const versionsRef = collection(db, 'product_versions');
       const productsSnap = await getDocs(productsRef);
       if (productsSnap.empty) {
         for (const item of INITIAL_PRODUCTS) {
-          await setDoc(doc(db, 'products', item.id), item);
+          const normalized = syncProductSummaryFromVersions(item);
+          await setDoc(doc(db, 'products', normalized.id), cleanFirestoreData(normalized));
+          for (const ver of normalized.versions || []) {
+            await setDoc(doc(db, 'product_versions', ver.id), cleanFirestoreData(ver));
+          }
         }
       }
 
@@ -437,15 +664,45 @@ class StoreService {
           const list: Product[] = [];
           snapshot.forEach((d) => {
             const data = d.data() as Product;
-            list.push({
-              ...data,
-              images: (data.images || []).map((img) => img.startsWith('/src/assets/') ? img.replace('/src/assets/', '/assets/') : img)
-            });
+            list.push(
+              syncProductSummaryFromVersions({
+                ...data,
+                images: (data.images || []).map((img) =>
+                  img.startsWith('/src/assets/') ? img.replace('/src/assets/', '/assets/') : img
+                ),
+              })
+            );
           });
           this.localProducts = list;
           this.saveToStorage();
         }
       }, (err) => handleFirestoreError(err, OperationType.LIST, 'products'));
+
+      // Also keep product_versions collection in sync if populated independently
+      onSnapshot(versionsRef, (verSnap) => {
+        if (!verSnap.empty && this.localProducts.length > 0) {
+          const byProduct = new Map<string, ProductVersion[]>();
+          verSnap.forEach((d) => {
+            const ver = d.data() as ProductVersion;
+            if (!ver.productId) return;
+            const arr = byProduct.get(ver.productId) || [];
+            arr.push(ver);
+            byProduct.set(ver.productId, arr);
+          });
+          if (byProduct.size > 0) {
+            let changed = false;
+            this.localProducts = this.localProducts.map((p) => {
+              const remoteVersions = byProduct.get(p.id);
+              if (remoteVersions && remoteVersions.length > 0 && (!p.versions || p.versions.length === 0)) {
+                changed = true;
+                return syncProductSummaryFromVersions({ ...p, versions: remoteVersions });
+              }
+              return p;
+            });
+            if (changed) this.saveToStorage();
+          }
+        }
+      }, () => {});
 
       // Orders sync
       const ordersRef = collection(db, 'orders');
@@ -507,7 +764,7 @@ class StoreService {
     }
   }
 
-  // Stock Validation Engine
+  // Stock Validation Engine (per Product + Version + Size)
   validateCartStock(cart: CartItem[]): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     for (const item of cart) {
@@ -516,11 +773,25 @@ class StoreService {
         errors.push(`O produto "${item.product.name}" não está mais disponível.`);
         continue;
       }
-      const available = currentProduct.inventory[String(item.size)] ?? 0;
+
+      const versions = getAllVersions(currentProduct);
+      const targetVersion =
+        (item.versionId && versions.find((v) => v.id === item.versionId)) ||
+        getDefaultVersion(currentProduct);
+
+      if (!targetVersion || targetVersion.active === false || targetVersion.hidden) {
+        errors.push(
+          `A versão "${item.versionName || targetVersion?.name || 'selecionada'}" de "${currentProduct.name}" não está mais disponível.`
+        );
+        continue;
+      }
+
+      const available = getVersionSizeStock(targetVersion, String(item.size));
+      const label = `${currentProduct.name} — ${targetVersion.editionName || targetVersion.name}`;
       if (available <= 0) {
-        errors.push(`O tamanho ${item.size} de "${item.product.name}" acabou de esgotar.`);
+        errors.push(`O tamanho ${item.size} de "${label}" acabou de esgotar.`);
       } else if (item.quantity > available) {
-        errors.push(`Há apenas ${available} unidade(s) do tamanho ${item.size} de "${item.product.name}". Ajuste a quantidade.`);
+        errors.push(`Há apenas ${available} unidade(s) do tamanho ${item.size} de "${label}". Ajuste a quantidade.`);
       }
     }
     return {
@@ -529,21 +800,183 @@ class StoreService {
     };
   }
 
-  // Decrement Stock on Checkout
+  // Atomic Order Placement & Per-Version Stock Decrement via Firestore Transaction
+  async placeOrderAtomic(order: Order, cart: CartItem[]): Promise<Order> {
+    const finalOrder: Order = {
+      ...order,
+      stockDeducted: true,
+      stockRestored: false,
+    };
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        // 1. Read unique product docs inside transaction
+        const productIds = Array.from(new Set(cart.map((c) => c.product.id)));
+        const loadedProducts = new Map<string, Product>();
+
+        for (const pid of productIds) {
+          const prodRef = doc(db, 'products', pid);
+          const snap = await transaction.get(prodRef);
+          if (snap.exists()) {
+            loadedProducts.set(pid, syncProductSummaryFromVersions(snap.data() as Product));
+          } else {
+            const local = this.localProducts.find((p) => p.id === pid);
+            if (!local) {
+              throw new Error(`STOCK_ERROR:O produto selecionado não foi encontrado no catálogo.`);
+            }
+            loadedProducts.set(pid, syncProductSummaryFromVersions(local));
+          }
+        }
+
+        // 2. Validate & decrement exact version+size quantities inside transaction
+        const touchedVersionDocs = new Map<string, ProductVersion>();
+
+        for (const item of cart) {
+          const prod = loadedProducts.get(item.product.id);
+          if (!prod) {
+            throw new Error(`STOCK_ERROR:Produto "${item.product.name}" indisponível.`);
+          }
+          const versions = getAllVersions(prod);
+          const vIdx = versions.findIndex((v) => v.id === item.versionId);
+          const resolvedIdx = vIdx >= 0 ? vIdx : 0;
+          const version = versions[resolvedIdx];
+
+          if (!version || version.active === false || version.hidden) {
+            throw new Error(
+              `STOCK_ERROR:A versão "${item.versionName}" de "${prod.name}" está indisponível no momento.`
+            );
+          }
+
+          const sizeKey = String(item.size);
+          const currentQty = Number(version.inventory?.[sizeKey] ?? 0);
+          if (currentQty < item.quantity) {
+            throw new Error(
+              currentQty <= 0
+                ? `STOCK_ERROR:O tamanho ${sizeKey} de "${prod.name} (${version.name})" acabou de esgotar.`
+                : `STOCK_ERROR:Apenas ${currentQty} unidade(s) disponíveis no tamanho ${sizeKey} de "${prod.name} (${version.name})".`
+            );
+          }
+
+          const updatedVersion: ProductVersion = {
+            ...version,
+            inventory: {
+              ...(version.inventory || {}),
+              [sizeKey]: Math.max(0, currentQty - item.quantity),
+            },
+            updatedAt: new Date().toISOString(),
+          };
+          versions[resolvedIdx] = updatedVersion;
+          loadedProducts.set(prod.id, syncProductSummaryFromVersions({ ...prod, versions }));
+          touchedVersionDocs.set(updatedVersion.id, updatedVersion);
+        }
+
+        // 3. Commit updated products, versions, and the new order atomically
+        for (const [pid, updatedProd] of loadedProducts.entries()) {
+          transaction.set(doc(db, 'products', pid), cleanFirestoreData(updatedProd));
+        }
+        for (const [vid, updatedVer] of touchedVersionDocs.entries()) {
+          transaction.set(doc(db, 'product_versions', vid), cleanFirestoreData(updatedVer));
+        }
+        transaction.set(doc(db, 'orders', finalOrder.id), cleanFirestoreData(finalOrder));
+      });
+
+      // Mirror updates into local cache immediately
+      await this.applyLocalStockDelta(cart, -1);
+      this.localOrders.unshift(finalOrder);
+      this.saveToStorage();
+      await this.recordEvent('order_placed', { orderId: finalOrder.id, total: finalOrder.total });
+      return finalOrder;
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith('STOCK_ERROR:')) {
+        throw new Error(err.message.replace('STOCK_ERROR:', ''));
+      }
+      // Offline / permission fallback so checkout doesn't drop orders if offline
+      console.warn('[OFF.SNEAKERSOFC] Transaction fallback to local+standard write:', err);
+      const localCheck = this.validateCartStock(cart);
+      if (!localCheck.valid) {
+        throw new Error(localCheck.errors.join(' '));
+      }
+      await this.createOrder(finalOrder);
+      await this.decrementOrderStock(cart);
+      return finalOrder;
+    }
+  }
+
+  private async applyLocalStockDelta(cart: CartItem[], direction: -1 | 1): Promise<void> {
+    for (const item of cart) {
+      const idx = this.localProducts.findIndex((p) => p.id === item.product.id);
+      if (idx < 0) continue;
+      const prod = syncProductSummaryFromVersions(this.localProducts[idx]);
+      const versions = getAllVersions(prod);
+      const vIdx = versions.findIndex((v) => v.id === item.versionId);
+      const targetIdx = vIdx >= 0 ? vIdx : 0;
+      const ver = versions[targetIdx];
+      if (!ver) continue;
+      const sizeKey = String(item.size);
+      const cur = Number(ver.inventory?.[sizeKey] ?? 0);
+      ver.inventory = {
+        ...(ver.inventory || {}),
+        [sizeKey]: Math.max(0, cur + direction * item.quantity),
+      };
+      ver.updatedAt = new Date().toISOString();
+      versions[targetIdx] = ver;
+      this.localProducts[idx] = syncProductSummaryFromVersions({ ...prod, versions });
+    }
+    this.saveToStorage();
+  }
+
+  // Decrement Stock on Checkout (legacy & fallback wrapper)
   async decrementOrderStock(cart: CartItem[]): Promise<void> {
     for (const item of cart) {
-      const prod = this.localProducts.find((p) => p.id === item.product.id);
-      if (prod) {
-        const currentQty = prod.inventory[String(item.size)] ?? 0;
-        const newQty = Math.max(0, currentQty - item.quantity);
-        prod.inventory[String(item.size)] = newQty;
-        // check if all sizes are 0
-        const totalStock = Object.values(prod.inventory).reduce((a, b) => a + b, 0);
-        if (totalStock <= 0) {
-          prod.status = 'out_of_stock';
+      const idx = this.localProducts.findIndex((p) => p.id === item.product.id);
+      if (idx >= 0) {
+        const prod = syncProductSummaryFromVersions(this.localProducts[idx]);
+        const versions = getAllVersions(prod);
+        const vIdx = versions.findIndex((v) => v.id === item.versionId);
+        const targetIdx = vIdx >= 0 ? vIdx : 0;
+        const ver = versions[targetIdx];
+        if (ver) {
+          const sizeKey = String(item.size);
+          const currentQty = Number(ver.inventory?.[sizeKey] ?? 0);
+          ver.inventory = {
+            ...(ver.inventory || {}),
+            [sizeKey]: Math.max(0, currentQty - item.quantity),
+          };
+          ver.updatedAt = new Date().toISOString();
+          versions[targetIdx] = ver;
         }
-        await this.saveProduct(prod);
+        const synced = syncProductSummaryFromVersions({ ...prod, versions });
+        await this.saveProduct(synced);
       }
+    }
+  }
+
+  // Restore exact version+size stock when an order is cancelled
+  async restoreOrderStock(order: Order): Promise<void> {
+    if (!order || order.stockRestored || order.stockDeducted === false) return;
+
+    for (const item of order.items) {
+      const idx = this.localProducts.findIndex((p) => p.id === item.productId);
+      if (idx < 0) continue;
+      const prod = syncProductSummaryFromVersions(this.localProducts[idx]);
+      const versions = getAllVersions(prod);
+      const vIdx = item.versionId ? versions.findIndex((v) => v.id === item.versionId) : 0;
+      const targetIdx = vIdx >= 0 ? vIdx : 0;
+      const ver = versions[targetIdx];
+      if (!ver) continue;
+      const sizeKey = String(item.size);
+      if (!ver.sizes.includes(sizeKey)) {
+        ver.sizes = [...ver.sizes, sizeKey];
+      }
+      const currentQty = Number(ver.inventory?.[sizeKey] ?? 0);
+      ver.inventory = {
+        ...(ver.inventory || {}),
+        [sizeKey]: currentQty + item.quantity,
+      };
+      ver.updatedAt = new Date().toISOString();
+      versions[targetIdx] = ver;
+      const synced = syncProductSummaryFromVersions({ ...prod, versions });
+      await this.saveProduct(synced);
     }
   }
 
@@ -553,27 +986,56 @@ class StoreService {
   }
 
   async saveProduct(product: Product): Promise<void> {
-    const idx = this.localProducts.findIndex(p => p.id === product.id);
+    const normalized = syncProductSummaryFromVersions(product);
+    const existing = this.localProducts.find((p) => p.id === normalized.id);
+    const oldVersionIds = new Set((existing?.versions || []).map((v) => v.id));
+    const newVersionIds = new Set((normalized.versions || []).map((v) => v.id));
+
+    const idx = this.localProducts.findIndex((p) => p.id === normalized.id);
     if (idx >= 0) {
-      this.localProducts[idx] = { ...product, updatedAt: new Date().toISOString() };
+      this.localProducts[idx] = normalized;
     } else {
-      this.localProducts.unshift({ ...product, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      this.localProducts.unshift(normalized);
     }
     this.saveToStorage();
 
     try {
-      await setDoc(doc(db, 'products', product.id), product);
+      await setDoc(doc(db, 'products', normalized.id), cleanFirestoreData(normalized));
+      // Mirror versions into product_versions collection
+      for (const ver of normalized.versions || []) {
+        await setDoc(doc(db, 'product_versions', ver.id), cleanFirestoreData(ver));
+      }
+      // Clean up deleted versions from product_versions
+      for (const oldId of oldVersionIds) {
+        if (!newVersionIds.has(oldId)) {
+          await deleteDoc(doc(db, 'product_versions', oldId)).catch(() => {});
+        }
+      }
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `products/${product.id}`);
+      handleFirestoreError(err, OperationType.WRITE, `products/${normalized.id}`);
     }
   }
 
   async deleteProduct(productId: string): Promise<void> {
-    this.localProducts = this.localProducts.filter(p => p.id !== productId);
+    const target = this.localProducts.find((p) => p.id === productId);
+    const versionIds = (target?.versions || []).map((v) => v.id);
+
+    this.localProducts = this.localProducts.filter((p) => p.id !== productId);
     this.saveToStorage();
 
     try {
       await deleteDoc(doc(db, 'products', productId));
+      for (const vid of versionIds) {
+        await deleteDoc(doc(db, 'product_versions', vid)).catch(() => {});
+      }
+      // Also query any orphaned product_versions by productId
+      const q = query(collection(db, 'product_versions'), where('productId', '==', productId));
+      const snap = await getDocs(q).catch(() => null);
+      if (snap && !snap.empty) {
+        for (const d of snap.docs) {
+          await deleteDoc(d.ref).catch(() => {});
+        }
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `products/${productId}`);
     }
@@ -646,7 +1108,16 @@ class StoreService {
   ): Promise<void> {
     const o = this.localOrders.find(item => item.id === orderId);
     const now = new Date().toISOString();
+    let restoredNow = false;
+
     if (o) {
+      if (status === 'cancelado' && o.stockDeducted !== false && !o.stockRestored) {
+        await this.restoreOrderStock(o);
+        o.stockRestored = true;
+        o.stockRestoredAt = now;
+        restoredNow = true;
+      }
+
       o.status = status;
       if (notes !== undefined) o.notes = notes;
       if (trackingCode !== undefined) o.trackingCode = trackingCode;
@@ -654,7 +1125,9 @@ class StoreService {
       if (!o.history) o.history = [];
       o.history.unshift({
         timestamp: now,
-        action: `Status alterado para "${status}"`,
+        action: restoredNow
+          ? `Status alterado para "${status}" (estoque das versões restaurado)`
+          : `Status alterado para "${status}"`,
         operator,
         note: notes
       });
@@ -662,12 +1135,14 @@ class StoreService {
     }
 
     try {
-      await updateDoc(doc(db, 'orders', orderId), {
+      await updateDoc(doc(db, 'orders', orderId), cleanFirestoreData({
         status,
         ...(notes !== undefined ? { notes } : {}),
         ...(trackingCode !== undefined ? { trackingCode } : {}),
+        ...(restoredNow ? { stockRestored: true, stockRestoredAt: now } : {}),
+        ...(o?.history ? { history: o.history } : {}),
         updatedAt: now,
-      });
+      }));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`);
     }
@@ -804,8 +1279,9 @@ class StoreService {
     const data = {
       timestamp: new Date().toISOString(),
       storeName: 'OFF.SNEAKERSOFC',
-      version: '2.0-PRO',
+      version: '3.0-VERSIONS',
       products: this.localProducts,
+      productVersions: this.localProducts.flatMap((p) => p.versions || []),
       orders: this.localOrders,
       settings: this.localSettings,
       design: this.localDesign,
@@ -819,7 +1295,7 @@ class StoreService {
     try {
       const data = JSON.parse(jsonString);
       if (data.products && Array.isArray(data.products)) {
-        this.localProducts = data.products;
+        this.localProducts = data.products.map((p: Product) => syncProductSummaryFromVersions(p));
       }
       if (data.orders && Array.isArray(data.orders)) {
         this.localOrders = data.orders;
@@ -839,7 +1315,10 @@ class StoreService {
       this.saveToStorage();
 
       for (const p of this.localProducts) {
-        setDoc(doc(db, 'products', p.id), p).catch(() => {});
+        setDoc(doc(db, 'products', p.id), cleanFirestoreData(p)).catch(() => {});
+        for (const v of p.versions || []) {
+          setDoc(doc(db, 'product_versions', v.id), cleanFirestoreData(v)).catch(() => {});
+        }
       }
       setDoc(doc(db, 'store_settings', 'current'), this.localSettings).catch(() => {});
       setDoc(doc(db, 'design_settings', 'current'), this.localDesign).catch(() => {});

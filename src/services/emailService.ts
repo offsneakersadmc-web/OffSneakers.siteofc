@@ -19,7 +19,8 @@ export function generateAdminOrderEmailHtml(order: Order, settings: StoreSetting
       <tr>
         <td style="padding: 12px; border-bottom: 1px solid #27272a; color: #f4f4f5; font-size: 13px;">
           <strong>${item.name}</strong><br />
-          <span style="color: #a1a1aa; font-size: 11px;">Marca: ${item.brand} | Tam: ${item.size}</span>
+          ${item.versionName ? `<span style="color: #f87171; font-size: 11px; font-weight: bold;">Versão: ${item.editionName || item.versionName}${item.colorName ? ` (${item.colorName})` : ''}</span><br />` : ''}
+          <span style="color: #a1a1aa; font-size: 11px;">Marca: ${item.brand} | Tam: ${item.size}${item.sku ? ` | SKU: ${item.sku}` : ''}</span>
         </td>
         <td style="padding: 12px; border-bottom: 1px solid #27272a; color: #f4f4f5; font-size: 13px; text-align: center;">
           ${item.quantity}
@@ -92,7 +93,7 @@ export function generateAdminOrderEmailHtml(order: Order, settings: StoreSetting
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
         <thead>
           <tr style="background-color: #121214; text-align: left;">
-            <th style="padding: 10px 12px; color: #a1a1aa; font-size: 11px; text-transform: uppercase;">Item / Tamanho</th>
+            <th style="padding: 10px 12px; color: #a1a1aa; font-size: 11px; text-transform: uppercase;">Item / Versão / Tamanho</th>
             <th style="padding: 10px 12px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; text-align: center;">Qtd</th>
             <th style="padding: 10px 12px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; text-align: right;">Unitário</th>
             <th style="padding: 10px 12px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; text-align: right;">Total</th>
@@ -160,6 +161,13 @@ export function generateAdminOrderEmailHtml(order: Order, settings: StoreSetting
 }
 
 export function generateClientOrderEmailHtml(order: Order, settings: StoreSettings): string {
+  const itemsListHtml = order.items
+    .map(
+      (i) =>
+        `<li style="margin: 4px 0; font-size: 13px; color: #e4e4e7;"><strong>${i.name}</strong>${i.versionName ? ` — Versão: ${i.editionName || i.versionName}` : ''}${i.colorName ? ` (${i.colorName})` : ''} | Tam: ${i.size} × ${i.quantity} — <strong>${formatCurrency(i.totalPrice)}</strong></li>`
+    )
+    .join('');
+
   return `
 <!DOCTYPE html>
 <html>
@@ -190,11 +198,11 @@ export function generateClientOrderEmailHtml(order: Order, settings: StoreSettin
         <h3 style="margin: 0 0 10px; font-size: 12px; color: #C9000B; text-transform: uppercase;">
           Resumo do seu Pedido
         </h3>
+        <ul style="margin: 0 0 10px; padding-left: 18px;">
+          ${itemsListHtml}
+        </ul>
         <p style="margin: 4px 0; font-size: 13px; color: #e4e4e7;">
-          <strong>Itens:</strong> ${order.items.map(i => `${i.name} (Tam: ${i.size}) × ${i.quantity}`).join(', ')}
-        </p>
-        <p style="margin: 4px 0; font-size: 13px; color: #e4e4e7;">
-          <strong>Total Previsto:</strong> ${formatCurrency(order.total)} (${order.paymentMethod === 'PIX' ? 'com 5% OFF no PIX' : 'Cartão de Crédito'})
+          <strong>Total Previsto:</strong> ${formatCurrency(order.total)} (${order.paymentMethod === 'PIX' ? 'com 5% OFF no PIX' : order.paymentMethod === 'CARTAO' ? 'Cartão de Crédito' : 'A Combinar'})
         </p>
         <p style="margin: 4px 0; font-size: 13px; color: #e4e4e7;">
           <strong>Endereço de Entrega:</strong> ${order.customer.street}, ${order.customer.number} - ${order.customer.city}/${order.customer.state}

@@ -34,6 +34,18 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || true; // allow store manager access in preview
     }
 
+    // Product versions & per-version inventory
+    match /product_versions/{versionId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || true;
+    }
+
+    // Media library assets
+    match /media/{mediaId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || true;
+    }
+
     // Orders placed via WhatsApp Checkout
     match /orders/{orderId} {
       allow read: if true;

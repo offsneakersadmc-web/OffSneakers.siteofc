@@ -31,6 +31,8 @@ import {
 } from 'lucide-react';
 import {
   Product,
+  ProductSpec,
+  ProductVersion,
   Order,
   StoreSettings,
   DesignSettings,
@@ -43,7 +45,16 @@ import { storeService } from '../../services/storeService';
 import { dispatchOrderEmailNotifications } from '../../services/emailService';
 import { adminAuthService, AdminUser } from '../../services/adminAuthService';
 import { TechnicalDiagnosticPanel } from './TechnicalDiagnosticPanel';
+import { ProductVersionsEditor } from './ProductVersionsEditor';
+import { ProductModal } from '../catalog/ProductModal';
 import { resolveImageUrl, handleImageError } from '../../utils/imageHelper';
+import {
+  getAllVersions,
+  getProductPriceRange,
+  getProductTotalStock,
+  getVersionTotalStock,
+  syncProductSummaryFromVersions,
+} from '../../utils/versionHelper';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -1097,9 +1108,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <td className="p-4 text-zinc-300">
                             {order.items.map((i, idx) => (
                               <div key={idx} className="truncate max-w-xs">
-                                {i.name} (Tam: {i.size}) × {i.quantity}
+                                <span className="font-semibold text-white">{i.name}</span>
+                                {i.versionName ? (
+                                  <span className="text-red-300"> • {i.editionName || i.versionName}</span>
+                                ) : null}
+                                <span className="text-zinc-400"> (Tam: {i.size}) × {i.quantity}</span>
                               </div>
                             ))}
+                            {order.status === 'cancelado' && order.stockRestored && (
+                              <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
+                                Estoque restaurado
+                              </span>
+                            )}
                           </td>
                           <td className="p-4 font-anton text-sm text-white font-mono">
                             {formatCurrency(order.total)}
@@ -1188,7 +1208,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((product) => {
-                const totalStock = Object.values(product.inventory || {}).reduce((a, b) => a + b, 0);
+                const versions = getAllVersions(product);
+                const totalStock = getProductTotalStock(product);
+                const priceRange = getProductPriceRange(product);
+
                 return (
                   <div
                     key={product.id}
@@ -1202,61 +1225,80 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         className="w-20 h-20 object-contain bg-zinc-950 rounded-xl p-1 shrink-0"
                       />
                       <div className="min-w-0 flex-1">
-                        <span className="text-[10px] text-[#C9000B] font-bold uppercase tracking-widest block">
-                          {product.brand}
-                        </span>
-                        <h4 className="text-sm font-bold text-white truncate">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-[#C9000B] font-bold uppercase tracking-widest">
+                            {product.brand}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-300 font-semibold">
+                            {versions.length} versão(ões)
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white truncate mt-0.5">
                           {product.name}
                         </h4>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="font-anton text-lg text-white font-mono">
-                            {formatCurrency(product.price)}
+                          <span className="font-anton text-lg text-white font-mono tabular-nums">
+                            {priceRange.hasRange
+                              ? `${formatCurrency(priceRange.min)} – ${formatCurrency(priceRange.max)}`
+                              : formatCurrency(priceRange.min)}
                           </span>
-                          {product.originalPrice && (
-                            <span className="text-xs text-zinc-500 line-through">
-                              {formatCurrency(product.originalPrice)}
-                            </span>
-                          )}
                         </div>
                         <span className="text-[11px] text-zinc-400 block mt-1">
-                          Estoque Total: <strong className="text-white">{totalStock} par(es)</strong>
+                          Estoque Total: <strong className="text-white tabular-nums">{totalStock} par(es)</strong>
                         </span>
                       </div>
                     </div>
 
-                    {/* Sizes and stock badge list */}
-                    <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">
-                        Variações Cadastradas:
+                    {/* Versions & stock summary list */}
+                    <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800 space-y-1.5">
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                        Versões & Estoque:
                       </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(product.sizes || []).map((s) => {
-                          const stock = product.inventory?.[String(s)] ?? 0;
+                      <div className="space-y-1">
+                        {versions.slice(0, 4).map((v) => {
+                          const vStock = getVersionTotalStock(v);
                           return (
-                            <span
-                              key={String(s)}
-                              className={`text-[10px] px-2 py-0.5 rounded font-mono ${
-                                stock > 0
-                                  ? 'bg-zinc-800 text-zinc-200 border border-zinc-700'
-                                  : 'bg-rose-950/40 text-rose-400 border border-rose-900 line-through'
-                              }`}
+                            <div
+                              key={v.id}
+                              className="flex items-center justify-between text-[11px] bg-zinc-950/70 px-2 py-1 rounded border border-zinc-800/80"
                             >
-                              {s}: {stock} un.
-                            </span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full border border-white/30 shrink-0"
+                                  style={{ backgroundColor: v.colorHex || '#71717A' }}
+                                />
+                                <span className="text-zinc-200 truncate">{v.name}</span>
+                                {v.hidden && (
+                                  <span className="text-[9px] text-amber-400">(Oculta)</span>
+                                )}
+                              </div>
+                              <span
+                                className={`font-mono tabular-nums shrink-0 ${
+                                  vStock > 0 ? 'text-emerald-400' : 'text-rose-400'
+                                }`}
+                              >
+                                {vStock} un.
+                              </span>
+                            </div>
                           );
                         })}
+                        {versions.length > 4 && (
+                          <span className="text-[10px] text-zinc-400 block">
+                            +{versions.length - 4} outra(s) versão(ões)
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-zinc-800 flex items-center justify-between">
                       <span className="text-[11px] text-zinc-500 font-mono">
-                        {product.sku ? `SKU: ${product.sku}` : 'Ativo'}
+                        {product.pricingMode === 'shared' ? 'Preço único' : 'Preço p/ versão'}
                       </span>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setEditingProduct(product)}
                           className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg cursor-pointer"
-                          title="Editar Sneaker"
+                          title="Editar Sneaker e Versões"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
@@ -1851,11 +1893,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div className="bg-zinc-900/60 p-3 rounded-xl space-y-2">
-                <span className="font-bold text-white uppercase block">Itens Solicitados</span>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white uppercase block">Itens Solicitados (Snapshot Imutável)</span>
+                  {selectedOrder.status === 'cancelado' && selectedOrder.stockRestored && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-semibold">
+                      Estoque restaurado às versões
+                    </span>
+                  )}
+                </div>
                 {selectedOrder.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                    <span>{item.name} (Tam: {item.size}) × {item.quantity}</span>
-                    <span className="font-mono text-white font-bold">{formatCurrency(item.totalPrice)}</span>
+                  <div key={idx} className="flex justify-between items-start gap-2 text-xs p-2 bg-zinc-950/70 rounded-lg border border-zinc-800/80">
+                    <div className="min-w-0">
+                      <span className="font-semibold text-white block">{item.name}</span>
+                      {(item.editionName || item.versionName) && (
+                        <span className="text-[11px] text-red-300 block">
+                          Versão: {item.editionName || item.versionName}
+                          {item.colorName ? ` (${item.colorName})` : ''}
+                        </span>
+                      )}
+                      <span className="text-[11px] text-zinc-400 block font-mono">
+                        Tam: {item.size} × {item.quantity} ({formatCurrency(item.unitPrice)}/un)
+                        {item.sku ? ` • SKU: ${item.sku}` : ''}
+                      </span>
+                    </div>
+                    <span className="font-mono text-white font-bold shrink-0">{formatCurrency(item.totalPrice)}</span>
                   </div>
                 ))}
               </div>
@@ -1927,7 +1988,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   );
 };
 
-// Subcomponent: ProductFormModal with dynamic size adder
+// Subcomponent: ProductFormModal with Multi-Version System & Storefront Preview
 interface ProductFormModalProps {
   product: Product | null;
   brands: string[];
@@ -1943,273 +2004,488 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const [productId] = useState(() => product?.id || `prod-${Date.now()}`);
   const [name, setName] = useState(product?.name || '');
   const [brand, setBrand] = useState(product?.brand || brands[0] || 'Jordan');
   const [model, setModel] = useState(product?.model || '');
   const [description, setDescription] = useState(product?.description || '');
-  const [images, setImages] = useState<string[]>(product?.images || ['/assets/images/product_jordan_retro_high_1794010895050.jpg']);
+  const [category, setCategory] = useState(product?.category || categories[0] || 'Sneakers');
+  const [gender, setGender] = useState(product?.gender || 'Unissex');
+  const [condition, setCondition] = useState(
+    product?.condition || 'Novo na Caixa Original com Tags'
+  );
+  const [featured, setFeatured] = useState(product?.featured || false);
+  const [bestSeller, setBestSeller] = useState(product?.bestSeller || false);
+  const [newRelease, setNewRelease] = useState(product?.newRelease ?? true);
+
+  // Modes: Shared vs Individual per version
+  const [pricingMode, setPricingMode] = useState<'shared' | 'individual'>(
+    product?.pricingMode || 'individual'
+  );
+  const [descriptionMode, setDescriptionMode] = useState<'shared' | 'individual'>(
+    product?.descriptionMode || 'shared'
+  );
+  const [specsMode, setSpecsMode] = useState<'shared' | 'individual'>(
+    product?.specsMode || 'shared'
+  );
+
+  // Shared pricing & specs
   const [price, setPrice] = useState(product?.price || 1200);
   const [originalPrice, setOriginalPrice] = useState(product?.originalPrice || 1600);
   const [discountPercent, setDiscountPercent] = useState(product?.discountPercent || 25);
-  const [category, setCategory] = useState(product?.category || categories[0] || 'Sneakers');
-  const [sku, setSku] = useState(product?.sku || 'SKU-' + Math.floor(1000 + Math.random() * 9000));
-  const [condition, setCondition] = useState(product?.condition || 'Novo na Caixa Original com Tags');
-  const [featured, setFeatured] = useState(product?.featured || false);
-  const [bestSeller, setBestSeller] = useState(product?.bestSeller || false);
+  const [specs, setSpecs] = useState<ProductSpec[]>(product?.specs || []);
+  const [newSpecLabel, setNewSpecLabel] = useState('');
+  const [newSpecValue, setNewSpecValue] = useState('');
 
-  // Dynamic sizes & stock map
-  const [sizes, setSizes] = useState<string[]>(product?.sizes || ['38', '39', '40', '41', '42']);
-  const [inventory, setInventory] = useState<Record<string, number>>(
-    product?.inventory || { '38': 2, '39': 3, '40': 4, '41': 2, '42': 1 }
-  );
+  // Versions list (always at least 1 version)
+  const [versions, setVersions] = useState<ProductVersion[]>(() => {
+    if (product) return getAllVersions(product);
+    const now = new Date().toISOString();
+    return [
+      {
+        id: `ver-${Date.now()}`,
+        productId,
+        name: 'Versão Principal',
+        editionName: '',
+        colorName: 'Padrão',
+        colorHex: '#C9000B',
+        description: '',
+        specs: [],
+        images: ['/assets/images/product_jordan_retro_high_1794010895050.jpg'],
+        price: 1200,
+        originalPrice: 1600,
+        discountPercent: 25,
+        sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+        sizes: ['38', '39', '40', '41', '42'],
+        inventory: { '38': 2, '39': 3, '40': 4, '41': 2, '42': 1 },
+        active: true,
+        hidden: false,
+        isDefault: true,
+        isFeatured: true,
+        order: 0,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+  });
 
-  const [newSizeName, setNewSizeName] = useState('');
-  const [newSizeStock, setNewSizeStock] = useState(1);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  const handleAddSize = () => {
-    const clean = newSizeName.trim().toUpperCase();
-    if (!clean) return;
-    if (!sizes.includes(clean)) {
-      setSizes([...sizes, clean]);
-      setInventory({ ...inventory, [clean]: Math.max(0, newSizeStock) });
-      setNewSizeName('');
-      setNewSizeStock(1);
-    }
+  const handleAddSharedSpec = () => {
+    if (!newSpecLabel.trim() || !newSpecValue.trim()) return;
+    setSpecs([
+      ...specs,
+      {
+        id: `sp-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+        label: newSpecLabel.trim(),
+        value: newSpecValue.trim(),
+      },
+    ]);
+    setNewSpecLabel('');
+    setNewSpecValue('');
   };
 
-  const handleRemoveSize = (sizeToRemove: string) => {
-    setSizes(sizes.filter((s) => s !== sizeToRemove));
-    const nextInv = { ...inventory };
-    delete nextInv[sizeToRemove];
-    setInventory(nextInv);
-  };
-
-  const handleStockChange = (size: string, qty: number) => {
-    setInventory({ ...inventory, [size]: Math.max(0, qty) });
+  const buildDraftProduct = (): Product => {
+    const now = new Date().toISOString();
+    return syncProductSummaryFromVersions({
+      id: productId,
+      name: name || 'Pré-visualização do Sneaker',
+      brand,
+      model,
+      description,
+      specs,
+      images: versions[0]?.images || product?.images || ['/assets/images/product_jordan_retro_high_1794010895050.jpg'],
+      price,
+      originalPrice,
+      discountPercent,
+      sizes: versions[0]?.sizes || [],
+      inventory: versions[0]?.inventory || {},
+      category,
+      gender,
+      featured,
+      bestSeller,
+      newRelease,
+      status: product?.status === 'archived' ? 'archived' : 'active',
+      sku: versions[0]?.sku || product?.sku,
+      condition,
+      pricingMode,
+      descriptionMode,
+      specsMode,
+      versions,
+      createdAt: product?.createdAt || now,
+      updatedAt: now,
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !price) return;
-
-    const totalStock = Object.values(inventory).reduce((a, b) => a + b, 0);
-
-    const saved: Product = {
-      id: product?.id || `prod-${Date.now()}`,
-      name,
-      brand,
-      model,
-      description,
-      images,
-      price,
-      originalPrice,
-      discountPercent,
-      sizes,
-      inventory,
-      category,
-      featured,
-      bestSeller,
-      newRelease: true,
-      status: totalStock > 0 ? 'active' : 'out_of_stock',
-      sku,
-      condition,
-      createdAt: product?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    onSave(saved);
+    if (!name.trim()) return;
+    onSave(buildDraftProduct());
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-[#181818] border border-zinc-800 rounded-2xl p-6 space-y-4 max-h-[88vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-          <h3 className="font-anton text-xl text-white uppercase">
-            {product ? 'Editar Sneaker' : 'Cadastrar Novo Sneaker'}
-          </h3>
-          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+      <div className="w-full max-w-5xl bg-[#181818] border border-zinc-800 rounded-2xl p-4 sm:p-6 space-y-5 max-h-[92vh] overflow-y-auto">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9000B]">
+              OFF.SNEAKERSOFC • PRODUTO & VERSÕES
+            </span>
+            <h3 className="font-anton text-xl sm:text-2xl text-white uppercase">
+              {product ? `Editar: ${product.name}` : 'Cadastrar Novo Sneaker com Versões'}
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen(true)}
+              className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold uppercase rounded-xl flex items-center gap-1.5 cursor-pointer border border-zinc-700"
+            >
+              <Eye className="w-4 h-4 text-[#C9000B]" />
+              <span>Pré-visualizar na Loja</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 text-zinc-400 hover:text-white bg-zinc-900 rounded-lg cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <div>
-            <label className="text-zinc-300 font-semibold block mb-1">Nome do Sneaker *</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-zinc-300 font-semibold block mb-1">Marca *</label>
-              <select
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white cursor-pointer"
-              >
-                {brands.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-zinc-300 font-semibold block mb-1">Modelo / Silhueta</label>
-              <input
-                type="text"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="text-zinc-300 font-semibold block mb-1">Preço Atual (R$) *</label>
-              <input
-                type="number"
-                required
-                value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
-                className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
-              />
-            </div>
-            <div>
-              <label className="text-zinc-300 font-semibold block mb-1">Preço Anterior (R$)</label>
-              <input
-                type="number"
-                value={originalPrice}
-                onChange={(e) => setOriginalPrice(Number(e.target.value))}
-                className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
-              />
-            </div>
-            <div>
-              <label className="text-zinc-300 font-semibold block mb-1">Desconto (%)</label>
-              <input
-                type="number"
-                value={discountPercent}
-                onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
-              />
-            </div>
-          </div>
-
-          {/* DYNAMIC SIZES & STOCK ENGINE */}
-          <div className="bg-zinc-900/90 p-4 rounded-xl border border-zinc-800 space-y-3">
-            <span className="text-xs font-bold text-[#C9000B] uppercase tracking-wider block">
-              Gerenciamento de Tamanhos & Quantidades em Estoque
+        <form onSubmit={handleSubmit} className="space-y-5 text-xs">
+          {/* Main Product Core Data */}
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 space-y-4">
+            <span className="text-xs font-bold text-white uppercase tracking-wider block">
+              1. Dados do Produto Principal
             </span>
 
-            {/* Add Size Row */}
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                placeholder="Ex: 37, 38.5, 41, M, GG..."
-                value={newSizeName}
-                onChange={(e) => setNewSizeName(e.target.value)}
-                className="w-36 bg-zinc-950 px-3 py-2 rounded-lg border border-zinc-700 text-white"
-              />
-              <input
-                type="number"
-                min="0"
-                placeholder="Qtd."
-                value={newSizeStock}
-                onChange={(e) => setNewSizeStock(Number(e.target.value))}
-                className="w-20 bg-zinc-950 px-3 py-2 rounded-lg border border-zinc-700 text-white"
-              />
-              <button
-                type="button"
-                onClick={handleAddSize}
-                className="px-3 py-2 bg-zinc-800 hover:bg-[#C9000B] text-white font-semibold rounded-lg cursor-pointer"
-              >
-                + Adicionar Tamanho
-              </button>
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="sm:col-span-2 lg:col-span-1">
+                <label className="text-zinc-300 font-semibold block mb-1">Nome do Sneaker *</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Nike Air Force 1"
+                  className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
+                />
+              </div>
 
-            {/* Sizes List with Quantity Inputs */}
-            <div className="space-y-1.5 pt-2">
-              {sizes.map((s) => (
-                <div
-                  key={s}
-                  className="flex items-center justify-between p-2 bg-zinc-950 rounded-lg border border-zinc-800"
+              <div>
+                <label className="text-zinc-300 font-semibold block mb-1">Marca *</label>
+                <select
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white cursor-pointer"
                 >
-                  <span className="font-anton text-sm text-white font-mono w-20">Tam: {s}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-zinc-400">Estoque:</span>
+                  {brands.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-zinc-300 font-semibold block mb-1">Modelo / Silhueta</label>
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="Ex: Air Force 1 Low"
+                  className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-zinc-300 font-semibold block mb-1">Categoria</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white cursor-pointer"
+                >
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-zinc-300 font-semibold block mb-1">Gênero</label>
+                <input
+                  type="text"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-zinc-300 font-semibold block mb-1">Condição Padrão</label>
+                <input
+                  type="text"
+                  value={condition}
+                  onChange={(e) => setCondition(e.target.value)}
+                  className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
+                />
+              </div>
+            </div>
+
+            {/* Pricing, Description & Specs Modes */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-zinc-800">
+              <div className="bg-zinc-950/70 p-3 rounded-xl border border-zinc-800">
+                <label className="text-[11px] font-bold text-zinc-300 uppercase block mb-2">
+                  Modo de Preço
+                </label>
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-2 cursor-pointer text-zinc-200">
                     <input
-                      type="number"
-                      min="0"
-                      value={inventory[s] ?? 0}
-                      onChange={(e) => handleStockChange(s, Number(e.target.value))}
-                      className="w-16 bg-zinc-900 px-2 py-1 rounded border border-zinc-700 text-white text-center font-mono"
+                      type="radio"
+                      name="pricingMode"
+                      checked={pricingMode === 'shared'}
+                      onChange={() => setPricingMode('shared')}
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSize(s)}
-                      className="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer"
-                      title="Remover tamanho"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                    <span>Igual para todas as versões</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-zinc-200">
+                    <input
+                      type="radio"
+                      name="pricingMode"
+                      checked={pricingMode === 'individual'}
+                      onChange={() => setPricingMode('individual')}
+                    />
+                    <span>Individual por versão</span>
+                  </label>
                 </div>
-              ))}
+              </div>
+
+              <div className="bg-zinc-950/70 p-3 rounded-xl border border-zinc-800">
+                <label className="text-[11px] font-bold text-zinc-300 uppercase block mb-2">
+                  Modo de Descrição
+                </label>
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-2 cursor-pointer text-zinc-200">
+                    <input
+                      type="radio"
+                      name="descriptionMode"
+                      checked={descriptionMode === 'shared'}
+                      onChange={() => setDescriptionMode('shared')}
+                    />
+                    <span>Compartilhada (produto principal)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-zinc-200">
+                    <input
+                      type="radio"
+                      name="descriptionMode"
+                      checked={descriptionMode === 'individual'}
+                      onChange={() => setDescriptionMode('individual')}
+                    />
+                    <span>Personalizada por versão</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="bg-zinc-950/70 p-3 rounded-xl border border-zinc-800">
+                <label className="text-[11px] font-bold text-zinc-300 uppercase block mb-2">
+                  Características Técnicas
+                </label>
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-2 cursor-pointer text-zinc-200">
+                    <input
+                      type="radio"
+                      name="specsMode"
+                      checked={specsMode === 'shared'}
+                      onChange={() => setSpecsMode('shared')}
+                    />
+                    <span>Compartilhadas (produto principal)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-zinc-200">
+                    <input
+                      type="radio"
+                      name="specsMode"
+                      checked={specsMode === 'individual'}
+                      onChange={() => setSpecsMode('individual')}
+                    />
+                    <span>Personalizadas por versão</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {pricingMode === 'shared' && (
+              <div className="grid grid-cols-3 gap-3 bg-zinc-950/50 p-3 rounded-xl border border-zinc-800">
+                <div>
+                  <label className="text-zinc-300 font-semibold block mb-1">Preço Único (R$) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={price}
+                    onChange={(e) => setPrice(Number(e.target.value))}
+                    className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-zinc-300 font-semibold block mb-1">Preço Anterior (R$)</label>
+                  <input
+                    type="number"
+                    value={originalPrice}
+                    onChange={(e) => setOriginalPrice(Number(e.target.value))}
+                    className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-zinc-300 font-semibold block mb-1">Desconto (%)</label>
+                  <input
+                    type="number"
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercent(Number(e.target.value))}
+                    className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-zinc-300 font-semibold block mb-1">
+                Descrição Principal {descriptionMode === 'individual' ? '(Fallback quando a versão não tiver texto próprio)' : ''}
+              </label>
+              <textarea
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
+              />
+            </div>
+
+            {/* Shared Technical Specs */}
+            <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-800 space-y-2">
+              <span className="text-[11px] font-bold text-zinc-300 uppercase block">
+                Características do Produto Principal
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="text"
+                  value={newSpecLabel}
+                  onChange={(e) => setNewSpecLabel(e.target.value)}
+                  placeholder="Ex: Cabedal, Solado, Entressola..."
+                  className="flex-1 min-w-[140px] bg-zinc-900 px-2.5 py-1.5 rounded-lg border border-zinc-700 text-white"
+                />
+                <input
+                  type="text"
+                  value={newSpecValue}
+                  onChange={(e) => setNewSpecValue(e.target.value)}
+                  placeholder="Ex: Couro legítimo premium"
+                  className="flex-1 min-w-[160px] bg-zinc-900 px-2.5 py-1.5 rounded-lg border border-zinc-700 text-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSharedSpec}
+                  className="px-3 py-1.5 bg-zinc-800 hover:bg-[#C9000B] text-white font-semibold rounded-lg cursor-pointer"
+                >
+                  + Adicionar Característica
+                </button>
+              </div>
+              {specs.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                  {specs.map((sp) => (
+                    <div
+                      key={sp.id}
+                      className="flex items-center justify-between bg-zinc-900 px-2.5 py-1.5 rounded-lg border border-zinc-800"
+                    >
+                      <span className="text-zinc-300 truncate">
+                        <strong className="text-white">{sp.label}:</strong> {sp.value}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSpecs(specs.filter((item) => item.id !== sp.id))}
+                        className="text-zinc-500 hover:text-rose-400 p-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-5 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={featured}
+                  onChange={(e) => setFeatured(e.target.checked)}
+                />
+                <span className="text-zinc-300">Destaque na Homepage</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={bestSeller}
+                  onChange={(e) => setBestSeller(e.target.checked)}
+                />
+                <span className="text-zinc-300">Mais Vendido</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={newRelease}
+                  onChange={(e) => setNewRelease(e.target.checked)}
+                />
+                <span className="text-zinc-300">Lançamento</span>
+              </label>
             </div>
           </div>
 
-          <div>
-            <label className="text-zinc-300 font-semibold block mb-1">URL da Imagem Principal</label>
-            <input
-              type="text"
-              value={images[0]}
-              onChange={(e) => setImages([e.target.value])}
-              className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
-            />
-          </div>
+          {/* 2. VERSIONS MANAGEMENT ENGINE */}
+          <ProductVersionsEditor
+            productId={productId}
+            productName={name}
+            pricingMode={pricingMode}
+            descriptionMode={descriptionMode}
+            specsMode={specsMode}
+            sharedPrice={price}
+            sharedOriginalPrice={originalPrice}
+            sharedDiscountPercent={discountPercent}
+            versions={versions}
+            onChange={setVersions}
+          />
 
-          <div>
-            <label className="text-zinc-300 font-semibold block mb-1">Descrição</label>
-            <textarea
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-700 text-white"
-            />
-          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen(true)}
+              className="sm:w-56 py-3.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase rounded-xl flex items-center justify-center gap-2 cursor-pointer border border-zinc-700"
+            >
+              <Eye className="w-4 h-4 text-[#C9000B]" />
+              <span>Pré-visualizar na Loja</span>
+            </button>
 
-          <div className="flex gap-4 pt-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featured}
-                onChange={(e) => setFeatured(e.target.checked)}
-              />
-              <span className="text-zinc-300">Destaque na Homepage</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={bestSeller}
-                onChange={(e) => setBestSeller(e.target.checked)}
-              />
-              <span className="text-zinc-300">Mais Vendido</span>
-            </label>
+            <button
+              type="submit"
+              className="flex-1 py-3.5 bg-[#C9000B] hover:bg-red-700 text-white font-anton text-base uppercase tracking-wider rounded-xl cursor-pointer shadow-lg shadow-red-950/40"
+            >
+              Salvar Sneaker e Todas as Versões
+            </button>
           </div>
-
-          <button
-            type="submit"
-            className="w-full py-3 bg-[#C9000B] hover:bg-red-700 text-white font-anton text-sm uppercase rounded-xl cursor-pointer"
-          >
-            Salvar Sneaker
-          </button>
         </form>
       </div>
+
+      {/* Live Storefront Preview Modal */}
+      {isPreviewOpen && (
+        <ProductModal
+          product={buildDraftProduct()}
+          isPreview={true}
+          onClose={() => setIsPreviewOpen(false)}
+          onAddToCart={() => {}}
+          onBuyNow={() => {}}
+        />
+      )}
     </div>
   );
 };

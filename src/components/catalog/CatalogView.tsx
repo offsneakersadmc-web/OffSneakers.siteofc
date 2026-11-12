@@ -1,13 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal, ArrowUpDown, X, Tag, Check, Filter } from 'lucide-react';
+import { Search, ArrowUpDown, X, Tag, Check, Filter } from 'lucide-react';
 import { Product } from '../../types';
 import { ProductCard } from './ProductCard';
 import { storeService } from '../../services/storeService';
 import { formatCurrency } from '../../utils/format';
+import {
+  getEffectiveVersionPrice,
+  getProductAllSizes,
+  getProductPriceRange,
+  getProductTotalStock,
+  getVersionSizeStock,
+  getVisibleVersions,
+} from '../../utils/versionHelper';
 
 interface CatalogViewProps {
   products: Product[];
-  onSelectProduct: (product: Product) => void;
+  onSelectProduct: (product: Product, preferredVersionId?: string) => void;
   initialFilter?: {
     brand?: string;
     bestsellersOnly?: boolean;
@@ -24,8 +32,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   const [selectedBrand, setSelectedBrand] = useState<string>(initialFilter?.brand || 'all');
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedColor, setSelectedColor] = useState<string>('all');
   const [inStockOnly, setInStockOnly] = useState(false);
-  const [maxPrice, setMaxPrice] = useState<number>(5000);
+  const [maxPrice, setMaxPrice] = useState<number>(6000);
   const [sortBy, setSortBy] = useState<'bestseller' | 'price_asc' | 'price_desc' | 'discount' | 'newest'>('bestseller');
   const [bestsellerOnly, setBestsellerOnly] = useState(initialFilter?.bestsellersOnly || false);
   const [releasesOnly, setReleasesOnly] = useState(initialFilter?.releasesOnly || false);
@@ -44,12 +53,27 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     return ['all', ...list];
   }, [products]);
 
-  // Collect all unique sizes across current products
+  // Dynamic colors across all visible versions
+  const availableColors = useMemo(() => {
+    const set = new Set<string>();
+    products
+      .filter((p) => p.status !== 'archived')
+      .forEach((p) => {
+        getVisibleVersions(p).forEach((v) => {
+          if (v.colorName?.trim()) set.add(v.colorName.trim());
+        });
+      });
+    return ['all', ...Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'))];
+  }, [products]);
+
+  // Collect all unique sizes across all visible active versions
   const availableSizes = useMemo(() => {
     const set = new Set<string>();
-    products.forEach((p) => {
-      (p.sizes || []).forEach((s) => set.add(String(s)));
-    });
+    products
+      .filter((p) => p.status !== 'archived')
+      .forEach((p) => {
+        getProductAllSizes(p, false).forEach((s) => set.add(s));
+      });
     return Array.from(set).sort((a, b) => {
       const numA = parseFloat(a);
       const numB = parseFloat(b);
@@ -58,65 +82,94 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     });
   }, [products]);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      // Search
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const match =
-          product.name.toLowerCase().includes(q) ||
-          product.brand.toLowerCase().includes(q) ||
-          product.model.toLowerCase().includes(q) ||
-          (product.sku && product.sku.toLowerCase().includes(q)) ||
-          (product.colorway && product.colorway.toLowerCase().includes(q));
-        if (!match) return false;
-      }
+  const filteredResults = useMemo(() => {
+    return products
+      .filter((p) => p.status !== 'archived')
+      .map((product) => {
+        const visibleVersions = getVisibleVersions(product);
+        const q = searchQuery.trim().toLowerCase();
 
-      // Brand
-      if (selectedBrand !== 'all' && product.brand.toLowerCase() !== selectedBrand.toLowerCase()) {
-        return false;
-      }
+        // Brand & Category
+        if (selectedBrand !== 'all' && product.brand.toLowerCase() !== selectedBrand.toLowerCase()) {
+          return null;
+        }
+        if (selectedCategory !== 'all' && product.category.toLowerCase() !== selectedCategory.toLowerCase()) {
+          return null;
+        }
+        if (bestsellerOnly && !product.bestSeller) return null;
+        if (releasesOnly && !product.newRelease) return null;
 
-      // Category
-      if (selectedCategory !== 'all' && product.category.toLowerCase() !== selectedCategory.toLowerCase()) {
-        return false;
-      }
+        // In stock only across versions
+        if (inStockOnly) {
+          if (getProductTotalStock(product) <= 0 || product.status === 'out_of_stock') return null;
+        }
 
-      // In stock only
-      if (inStockOnly) {
-        const totalStock = Object.values(product.inventory || {}).reduce((a, b) => a + b, 0);
-        if (totalStock <= 0 || product.status === 'out_of_stock') return false;
-      }
+        // Price limit (at least one visible version or min price within limit)
+        const priceRange = getProductPriceRange(product);
+        if (priceRange.min > maxPrice) return null;
 
-      // Price limit
-      if (product.price > maxPrice) {
-        return false;
-      }
+        // Find matching version when version-level filters are active
+        let matchedVersionId: string | undefined;
 
-      // Size
-      if (selectedSize !== null) {
-        const hasSize = (product.sizes || []).some((s) => String(s) === selectedSize);
-        const sizeStock = product.inventory?.[selectedSize] ?? 0;
-        if (!hasSize || sizeStock <= 0) return false;
-      }
+        const matchingVersions = visibleVersions.filter((v) => {
+          if (selectedColor !== 'all' && (v.colorName || '').toLowerCase() !== selectedColor.toLowerCase()) {
+            return false;
+          }
+          if (selectedSize !== null) {
+            if (v.active === false || getVersionSizeStock(v, selectedSize) <= 0) return false;
+          }
+          if (getEffectiveVersionPrice(product, v).price > maxPrice) {
+            return false;
+          }
+          if (q) {
+            const productMatches =
+              product.name.toLowerCase().includes(q) ||
+              product.brand.toLowerCase().includes(q) ||
+              product.model.toLowerCase().includes(q) ||
+              (product.sku && product.sku.toLowerCase().includes(q));
+            const versionMatches =
+              v.name.toLowerCase().includes(q) ||
+              (v.editionName && v.editionName.toLowerCase().includes(q)) ||
+              (v.colorName && v.colorName.toLowerCase().includes(q)) ||
+              (v.sku && v.sku.toLowerCase().includes(q));
+            if (!productMatches && !versionMatches) return false;
+          }
+          return true;
+        });
 
-      // Quick flags
-      if (bestsellerOnly && !product.bestSeller) return false;
-      if (releasesOnly && !product.newRelease) return false;
+        if (matchingVersions.length === 0) return null;
 
-      return true;
-    }).sort((a, b) => {
-      if (sortBy === 'price_asc') return a.price - b.price;
-      if (sortBy === 'price_desc') return b.price - a.price;
-      if (sortBy === 'discount') return (b.discountPercent || 0) - (a.discountPercent || 0);
-      if (sortBy === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      return (b.bestSeller ? 1 : 0) - (a.bestSeller ? 1 : 0);
-    });
+        if (q || selectedColor !== 'all' || selectedSize !== null) {
+          // Prefer exact version match for search/color/size so card displays it
+          const exactVersionMatch = matchingVersions.find((v) =>
+            q
+              ? v.name.toLowerCase().includes(q) ||
+                (v.editionName && v.editionName.toLowerCase().includes(q)) ||
+                (v.colorName && v.colorName.toLowerCase().includes(q)) ||
+                (v.sku && v.sku.toLowerCase().includes(q))
+              : true
+          );
+          matchedVersionId = (exactVersionMatch || matchingVersions[0]).id;
+        }
+
+        return { product, matchedVersionId, priceRange };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      .sort((a, b) => {
+        if (sortBy === 'price_asc') return a.priceRange.min - b.priceRange.min;
+        if (sortBy === 'price_desc') return b.priceRange.min - a.priceRange.min;
+        if (sortBy === 'discount') return b.priceRange.maxDiscount - a.priceRange.maxDiscount;
+        if (sortBy === 'newest') {
+          return new Date(b.product.createdAt).getTime() - new Date(a.product.createdAt).getTime();
+        }
+        return (b.product.bestSeller ? 1 : 0) - (a.product.bestSeller ? 1 : 0);
+      });
   }, [
     products,
     searchQuery,
     selectedBrand,
     selectedCategory,
+    selectedColor,
     selectedSize,
     inStockOnly,
     maxPrice,
@@ -126,12 +179,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   ]);
 
   const hasActiveFilters =
-    searchQuery ||
+    Boolean(searchQuery) ||
     selectedBrand !== 'all' ||
     selectedSize !== null ||
     selectedCategory !== 'all' ||
+    selectedColor !== 'all' ||
     inStockOnly ||
-    maxPrice < 5000 ||
+    maxPrice < 6000 ||
     bestsellerOnly ||
     releasesOnly;
 
@@ -140,8 +194,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     setSelectedBrand('all');
     setSelectedSize(null);
     setSelectedCategory('all');
+    setSelectedColor('all');
     setInStockOnly(false);
-    setMaxPrice(5000);
+    setMaxPrice(6000);
     setBestsellerOnly(false);
     setReleasesOnly(false);
   };
@@ -159,7 +214,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               TODOS OS SNEAKERS & DROPS
             </h1>
             <p className="text-zinc-400 text-xs sm:text-sm mt-1">
-              Pares autênticos com procedência verificada e condições especiais de revenda.
+              Pares autênticos com múltiplas edições, colorways e estoque em tempo real.
             </p>
           </div>
 
@@ -174,29 +229,29 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             </button>
 
             <div className="text-xs text-zinc-400">
-              <span className="font-mono tabular-nums text-white font-bold">{filteredProducts.length}</span>
-              <span> par(es) encontrado(s)</span>
+              <span className="font-mono tabular-nums text-white font-bold">{filteredResults.length}</span>
+              <span> modelo(s) encontrado(s)</span>
             </div>
           </div>
         </div>
 
         {/* Desktop Filter Controls Bar */}
         <div className="hidden lg:block bg-[#181818] p-5 rounded-2xl border border-zinc-800/80 space-y-4">
-          <div className="grid grid-cols-12 gap-4">
-            {/* Search Input */}
-            <div className="col-span-5 relative">
+          <div className="grid grid-cols-12 gap-3">
+            {/* Search Input (matches product + version + color + SKU) */}
+            <div className="col-span-4 relative">
               <Search className="absolute left-3.5 top-3 w-4 h-4 text-zinc-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por nome, marca ou modelo..."
+                placeholder="Buscar modelo, versão, edição, cor ou SKU..."
                 className="w-full pl-10 pr-8 py-2.5 bg-zinc-900 text-xs text-white placeholder-zinc-500 rounded-xl border border-zinc-700/80 focus:outline-none focus:border-[#C9000B]"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 text-zinc-400 hover:text-white"
+                  className="absolute right-3 top-3 text-zinc-400 hover:text-white cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -204,18 +259,36 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             </div>
 
             {/* Brand Dropdown */}
-            <div className="col-span-3">
+            <div className="col-span-2">
               <select
                 value={selectedBrand}
                 onChange={(e) => setSelectedBrand(e.target.value)}
                 className="w-full py-2.5 px-3 bg-zinc-900 text-xs text-white rounded-xl border border-zinc-700/80 focus:outline-none focus:border-[#C9000B] cursor-pointer"
               >
-                <option value="all">Todas as Marcas ({brands.length - 1})</option>
+                <option value="all">Marcas ({brands.length - 1})</option>
                 {brands
                   .filter((b) => b !== 'all')
                   .map((brand) => (
                     <option key={brand} value={brand}>
                       {brand}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Color / Version Colorway Dropdown */}
+            <div className="col-span-2">
+              <select
+                value={selectedColor}
+                onChange={(e) => setSelectedColor(e.target.value)}
+                className="w-full py-2.5 px-3 bg-zinc-900 text-xs text-white rounded-xl border border-zinc-700/80 focus:outline-none focus:border-[#C9000B] cursor-pointer"
+              >
+                <option value="all">Todas as Cores</option>
+                {availableColors
+                  .filter((c) => c !== 'all')
+                  .map((col) => (
+                    <option key={col} value={col}>
+                      {col}
                     </option>
                   ))}
               </select>
@@ -252,16 +325,16 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   <option value="price_asc">Menor Preço</option>
                   <option value="price_desc">Maior Preço</option>
                   <option value="discount">Maior Desconto</option>
-                  <option value="newest">Lançamentos Recentes</option>
+                  <option value="newest">Lançamentos</option>
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Size Filter Pills & Quick Toggles */}
+          {/* Size Filter Pills, Price Range & Quick Toggles */}
           <div className="pt-3 border-t border-zinc-800/60 flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-zinc-400 font-semibold mr-2">Tamanhos Disponíveis:</span>
+              <span className="text-xs text-zinc-400 font-semibold mr-2">Tamanhos:</span>
               <button
                 onClick={() => setSelectedSize(null)}
                 className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
@@ -287,7 +360,24 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Price Slider */}
+              <div className="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">
+                <span className="text-[11px] text-zinc-400 whitespace-nowrap">Até:</span>
+                <input
+                  type="range"
+                  min={500}
+                  max={6000}
+                  step={100}
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  className="w-24 accent-[#C9000B] cursor-pointer"
+                />
+                <span className="text-[11px] font-mono tabular-nums text-white font-bold whitespace-nowrap">
+                  {maxPrice >= 6000 ? 'Sem limite' : formatCurrency(maxPrice)}
+                </span>
+              </div>
+
               <button
                 onClick={() => setInStockOnly(!inStockOnly)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5 ${
@@ -314,7 +404,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-xs text-zinc-400 hover:text-rose-400 underline ml-2 cursor-pointer"
+                  className="text-xs text-zinc-400 hover:text-rose-400 underline ml-1 cursor-pointer"
                 >
                   Limpar Filtros
                 </button>
@@ -327,7 +417,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         {isMobileFilterOpen && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end animate-in fade-in duration-150">
             <div className="w-full max-w-sm bg-[#161616] h-full p-5 flex flex-col justify-between overflow-y-auto border-l border-zinc-800">
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                   <div className="flex items-center gap-2">
                     <Filter className="w-4 h-4 text-[#C9000B]" />
@@ -346,13 +436,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 {/* Mobile Search */}
                 <div>
                   <label className="text-xs font-semibold text-zinc-300 block mb-1">
-                    Buscar Sneaker
+                    Buscar Sneaker / Versão / Cor
                   </label>
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Nome, modelo..."
+                    placeholder="Nome, edição, cor, SKU..."
                     className="w-full px-3 py-2 bg-zinc-900 text-xs text-white rounded-lg border border-zinc-700"
                   />
                 </div>
@@ -376,6 +466,46 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                         </option>
                       ))}
                   </select>
+                </div>
+
+                {/* Mobile Color */}
+                <div>
+                  <label className="text-xs font-semibold text-zinc-300 block mb-1">
+                    Cor / Colorway
+                  </label>
+                  <select
+                    value={selectedColor}
+                    onChange={(e) => setSelectedColor(e.target.value)}
+                    className="w-full p-2 bg-zinc-900 text-xs text-white rounded-lg border border-zinc-700"
+                  >
+                    <option value="all">Todas as Cores</option>
+                    {availableColors
+                      .filter((c) => c !== 'all')
+                      .map((col) => (
+                        <option key={col} value={col}>
+                          {col}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Mobile Price Range */}
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-semibold text-zinc-300">Preço Máximo</span>
+                    <span className="font-mono text-white font-bold">
+                      {maxPrice >= 6000 ? 'Sem limite' : formatCurrency(maxPrice)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={500}
+                    max={6000}
+                    step={100}
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                    className="w-full accent-[#C9000B]"
+                  />
                 </div>
 
                 {/* Mobile Sizes */}
@@ -438,7 +568,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   onClick={() => setIsMobileFilterOpen(false)}
                   className="w-full py-3 bg-[#C9000B] hover:bg-red-700 text-white font-anton text-sm uppercase rounded-xl"
                 >
-                  Aplicar Filtros ({filteredProducts.length})
+                  Aplicar Filtros ({filteredResults.length})
                 </button>
                 {hasActiveFilters && (
                   <button
@@ -456,8 +586,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           </div>
         )}
 
-        {/* Product Grid (2 columns on mobile, 3-4 on desktop) */}
-        {filteredProducts.length === 0 ? (
+        {/* Product Grid */}
+        {filteredResults.length === 0 ? (
           <div className="text-center py-20 bg-[#161616] rounded-2xl border border-zinc-800 space-y-4">
             <Tag className="w-12 h-12 text-zinc-700 mx-auto" />
             <h3 className="font-anton text-2xl text-white uppercase">
@@ -475,10 +605,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-            {filteredProducts.map((product) => (
+            {filteredResults.map(({ product, matchedVersionId }) => (
               <ProductCard
                 key={product.id}
                 product={product}
+                preferredVersionId={matchedVersionId}
                 onSelect={onSelectProduct}
               />
             ))}

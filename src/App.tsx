@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Product,
+  ProductVersion,
   CartItem,
   Order,
   StoreSettings,
@@ -8,6 +9,11 @@ import {
   FaqItem
 } from './types';
 import { storeService } from './services/storeService';
+import {
+  getCartItemKey,
+  getDefaultVersion,
+  getEffectiveVersionPrice,
+} from './utils/versionHelper';
 import { Navbar } from './components/Navbar';
 import { HeroBanner } from './components/home/HeroBanner';
 import { BenefitsSection } from './components/home/BenefitsSection';
@@ -47,13 +53,33 @@ export default function App() {
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('offsneakers_cart');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved) as CartItem[];
+      return parsed.map((item) => {
+        if (item.versionId && item.unitPrice !== undefined) return item;
+        const defVer = getDefaultVersion(item.product);
+        const effPrice = getEffectiveVersionPrice(item.product, defVer);
+        return {
+          ...item,
+          versionId: item.versionId || defVer.id,
+          versionName: item.versionName || defVer.name,
+          editionName: item.editionName || defVer.editionName,
+          colorName: item.colorName || defVer.colorName,
+          colorHex: item.colorHex || defVer.colorHex,
+          image: item.image || defVer.images?.[0] || item.product.images?.[0],
+          unitPrice: item.unitPrice ?? effPrice.price,
+          originalPrice: item.originalPrice ?? effPrice.originalPrice,
+          discountPercent: item.discountPercent ?? effPrice.discountPercent,
+          sku: item.sku || defVer.sku || item.product.sku,
+        };
+      });
     } catch {
       return [];
     }
   });
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedInitialVersionId, setSelectedInitialVersionId] = useState<string | undefined>(undefined);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -98,18 +124,51 @@ export default function App() {
     setFaqs([...storeService.getFaqs()]);
   };
 
-  // Cart operations with string size support
-  const handleAddToCart = (product: Product, size: string, quantity: number) => {
+  const handleOpenProduct = (product: Product, preferredVersionId?: string) => {
+    setSelectedInitialVersionId(preferredVersionId);
+    setSelectedProduct(product);
+  };
+
+  // Cart operations keyed by (product.id, version.id, size)
+  const handleAddToCart = (
+    product: Product,
+    version: ProductVersion,
+    size: string,
+    quantity: number
+  ) => {
+    const effPrice = getEffectiveVersionPrice(product, version);
+    const targetKey = getCartItemKey(product.id, version.id, size);
+
     setCart((prevCart) => {
       const existingIdx = prevCart.findIndex(
-        (i) => i.product.id === product.id && String(i.size) === String(size)
+        (i) => getCartItemKey(i.product.id, i.versionId, i.size) === targetKey
       );
       let updated: CartItem[];
       if (existingIdx >= 0) {
         updated = [...prevCart];
-        updated[existingIdx].quantity += quantity;
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          quantity: updated[existingIdx].quantity + quantity,
+        };
       } else {
-        updated = [...prevCart, { product, size: String(size), quantity }];
+        updated = [
+          ...prevCart,
+          {
+            product,
+            versionId: version.id,
+            versionName: version.name,
+            editionName: version.editionName,
+            colorName: version.colorName,
+            colorHex: version.colorHex,
+            image: version.images?.[0] || product.images?.[0],
+            unitPrice: effPrice.price,
+            originalPrice: effPrice.originalPrice,
+            discountPercent: effPrice.discountPercent,
+            sku: version.sku || product.sku,
+            size: String(size),
+            quantity,
+          },
+        ];
       }
       try {
         localStorage.setItem('offsneakers_cart', JSON.stringify(updated));
@@ -118,29 +177,59 @@ export default function App() {
     });
 
     setSelectedProduct(null);
+    setSelectedInitialVersionId(undefined);
     setIsCartOpen(true);
   };
 
-  const handleBuyNow = (product: Product, size: string, quantity: number) => {
-    setCart([{ product, size: String(size), quantity }]);
+  const handleBuyNow = (
+    product: Product,
+    version: ProductVersion,
+    size: string,
+    quantity: number
+  ) => {
+    const effPrice = getEffectiveVersionPrice(product, version);
+    const singleCart: CartItem[] = [
+      {
+        product,
+        versionId: version.id,
+        versionName: version.name,
+        editionName: version.editionName,
+        colorName: version.colorName,
+        colorHex: version.colorHex,
+        image: version.images?.[0] || product.images?.[0],
+        unitPrice: effPrice.price,
+        originalPrice: effPrice.originalPrice,
+        discountPercent: effPrice.discountPercent,
+        sku: version.sku || product.sku,
+        size: String(size),
+        quantity,
+      },
+    ];
+    setCart(singleCart);
     try {
-      localStorage.setItem(
-        'offsneakers_cart',
-        JSON.stringify([{ product, size: String(size), quantity }])
-      );
+      localStorage.setItem('offsneakers_cart', JSON.stringify(singleCart));
     } catch {}
     setSelectedProduct(null);
+    setSelectedInitialVersionId(undefined);
     setIsCheckoutOpen(true);
   };
 
-  const handleUpdateCartQuantity = (productId: string, size: string, newQty: number) => {
+  const handleUpdateCartQuantity = (
+    productId: string,
+    versionId: string,
+    size: string,
+    newQty: number
+  ) => {
+    const targetKey = getCartItemKey(productId, versionId, size);
     setCart((prev) => {
       let updated: CartItem[];
       if (newQty <= 0) {
-        updated = prev.filter((i) => !(i.product.id === productId && String(i.size) === String(size)));
+        updated = prev.filter(
+          (i) => getCartItemKey(i.product.id, i.versionId, i.size) !== targetKey
+        );
       } else {
         updated = prev.map((i) =>
-          i.product.id === productId && String(i.size) === String(size)
+          getCartItemKey(i.product.id, i.versionId, i.size) === targetKey
             ? { ...i, quantity: newQty }
             : i
         );
@@ -152,10 +241,11 @@ export default function App() {
     });
   };
 
-  const handleRemoveCartItem = (productId: string, size: string) => {
+  const handleRemoveCartItem = (productId: string, versionId: string, size: string) => {
+    const targetKey = getCartItemKey(productId, versionId, size);
     setCart((prev) => {
       const updated = prev.filter(
-        (i) => !(i.product.id === productId && String(i.size) === String(size))
+        (i) => getCartItemKey(i.product.id, i.versionId, i.size) !== targetKey
       );
       try {
         localStorage.setItem('offsneakers_cart', JSON.stringify(updated));
@@ -314,11 +404,11 @@ export default function App() {
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                          {products.slice(0, 4).map((p) => (
+                          {products.filter((p) => p.status !== 'archived').slice(0, 4).map((p) => (
                             <ProductCard
                               key={p.id}
                               product={p}
-                              onSelect={(prod) => setSelectedProduct(prod)}
+                              onSelect={handleOpenProduct}
                             />
                           ))}
                         </div>
@@ -355,13 +445,13 @@ export default function App() {
 
                           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                             {products
-                              .filter((p) => p.bestSeller)
+                              .filter((p) => p.bestSeller && p.status !== 'archived')
                               .slice(0, 4)
                               .map((p) => (
                                 <ProductCard
                                   key={p.id}
                                   product={p}
-                                  onSelect={(prod) => setSelectedProduct(prod)}
+                                  onSelect={handleOpenProduct}
                                 />
                               ))}
                           </div>
@@ -423,7 +513,7 @@ export default function App() {
         {currentView === 'catalog' && (
           <CatalogView
             products={products}
-            onSelectProduct={(p) => setSelectedProduct(p)}
+            onSelectProduct={handleOpenProduct}
             initialFilter={{ brand: catalogBrandFilter }}
           />
         )}
@@ -432,7 +522,7 @@ export default function App() {
         {currentView === 'bestsellers' && (
           <CatalogView
             products={products}
-            onSelectProduct={(p) => setSelectedProduct(p)}
+            onSelectProduct={handleOpenProduct}
             initialFilter={{ bestsellersOnly: true }}
           />
         )}
@@ -441,7 +531,7 @@ export default function App() {
         {currentView === 'releases' && (
           <CatalogView
             products={products}
-            onSelectProduct={(p) => setSelectedProduct(p)}
+            onSelectProduct={handleOpenProduct}
             initialFilter={{ releasesOnly: true }}
           />
         )}
@@ -531,7 +621,11 @@ export default function App() {
       {/* Product Modal View */}
       <ProductModal
         product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
+        initialVersionId={selectedInitialVersionId}
+        onClose={() => {
+          setSelectedProduct(null);
+          setSelectedInitialVersionId(undefined);
+        }}
         onAddToCart={handleAddToCart}
         onBuyNow={handleBuyNow}
       />
@@ -541,6 +635,7 @@ export default function App() {
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cart={cart}
+        products={products}
         onUpdateQuantity={handleUpdateCartQuantity}
         onRemoveItem={handleRemoveCartItem}
         onCheckout={() => setIsCheckoutOpen(true)}
@@ -560,7 +655,7 @@ export default function App() {
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         products={products}
-        onSelectProduct={(p) => setSelectedProduct(p)}
+        onSelectProduct={handleOpenProduct}
       />
 
       {/* Global Footer */}

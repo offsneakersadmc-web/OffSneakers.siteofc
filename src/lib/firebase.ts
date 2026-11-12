@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, setPersistence, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -8,6 +9,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 /* CRITICAL: The app must pass the exact database ID from config */
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 // Strict Security: In-memory persistence only.
 // Never persist tokens in localStorage, sessionStorage, or IndexedDB.

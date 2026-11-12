@@ -1,15 +1,21 @@
 import React from 'react';
 import { X, Trash2, ArrowRight, ShoppingBag, ShieldCheck } from 'lucide-react';
-import { CartItem } from '../../types';
+import { CartItem, Product } from '../../types';
 import { formatCurrency } from '../../utils/format';
 import { resolveImageUrl, handleImageError } from '../../utils/imageHelper';
+import {
+  getAllVersions,
+  getCartItemKey,
+  getVersionSizeStock,
+} from '../../utils/versionHelper';
 
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   cart: CartItem[];
-  onUpdateQuantity: (productId: string, size: string, newQty: number) => void;
-  onRemoveItem: (productId: string, size: string) => void;
+  products?: Product[];
+  onUpdateQuantity: (productId: string, versionId: string, size: string, newQty: number) => void;
+  onRemoveItem: (productId: string, versionId: string, size: string) => void;
   onCheckout: () => void;
 }
 
@@ -17,13 +23,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   isOpen,
   onClose,
   cart,
+  products = [],
   onUpdateQuantity,
   onRemoveItem,
   onCheckout,
 }) => {
   if (!isOpen) return null;
 
-  const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  const subtotal = cart.reduce((acc, item) => {
+    const unit = Number(item.unitPrice ?? item.product.price ?? 0);
+    return acc + unit * item.quantity;
+  }, 0);
   const pixDiscount = Math.round(subtotal * 0.05);
   const totalPix = subtotal - pixDiscount;
 
@@ -60,18 +70,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </p>
             </div>
           ) : (
-            cart.map((item, index) => {
-              const maxStock = item.product.inventory?.[String(item.size)] ?? 5;
+            cart.map((item) => {
+              const liveProduct = products.find((p) => p.id === item.product.id) || item.product;
+              const versions = getAllVersions(liveProduct);
+              const liveVersion = versions.find((v) => v.id === item.versionId) || versions[0];
+              const maxStock = liveVersion
+                ? getVersionSizeStock(liveVersion, String(item.size))
+                : liveProduct.inventory?.[String(item.size)] ?? 5;
+
+              const unitPrice = Number(item.unitPrice ?? liveProduct.price ?? 0);
+              const itemImage = item.image || liveVersion?.images?.[0] || liveProduct.images?.[0];
+              const versionLabel = item.editionName || item.versionName || liveVersion?.name || '';
+
               return (
                 <div
-                  key={`${item.product.id}-${item.size}-${index}`}
+                  key={getCartItemKey(item.product.id, item.versionId, item.size)}
                   className="bg-zinc-900/80 p-3 sm:p-3.5 rounded-xl border border-zinc-800 flex gap-3 items-center"
                 >
                   <img
-                    src={resolveImageUrl(item.product.images?.[0])}
+                    src={resolveImageUrl(itemImage)}
                     onError={handleImageError}
-                    alt={item.product.name}
+                    alt={`${item.product.name} ${versionLabel}`}
                     className="w-16 h-16 object-contain bg-zinc-950 rounded-lg p-1 shrink-0"
+                    referrerPolicy="no-referrer"
                   />
 
                   <div className="flex-1 min-w-0">
@@ -81,11 +102,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <h4 className="text-xs font-semibold text-white truncate">
                       {item.product.name}
                     </h4>
+                    {versionLabel && (
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-zinc-300 truncate">
+                        {item.colorHex && (
+                          <span
+                            className="w-2.5 h-2.5 rounded-full border border-white/30 shrink-0"
+                            style={{ backgroundColor: item.colorHex }}
+                          />
+                        )}
+                        <span className="truncate font-medium">Versão: {versionLabel}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 mt-1 text-xs">
                       <span className="text-zinc-400 font-mono">Tam: {item.size}</span>
                       <span className="text-zinc-600">•</span>
-                      <span className="text-white font-bold font-mono">
-                        {formatCurrency(item.product.price)}
+                      <span className="text-white font-bold font-mono tabular-nums">
+                        {formatCurrency(unitPrice)}
                       </span>
                     </div>
 
@@ -93,12 +125,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex items-center border border-zinc-700 rounded bg-zinc-950">
                         <button
-                          onClick={() => onUpdateQuantity(item.product.id, item.size, item.quantity - 1)}
+                          onClick={() =>
+                            onUpdateQuantity(item.product.id, item.versionId, item.size, item.quantity - 1)
+                          }
                           className="px-2.5 py-1 text-xs text-zinc-400 hover:text-white cursor-pointer"
                         >
                           -
                         </button>
-                        <span className="px-2.5 text-xs font-bold text-white font-mono">
+                        <span className="px-2.5 text-xs font-bold text-white font-mono tabular-nums">
                           {item.quantity}
                         </span>
                         <button
@@ -106,6 +140,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                           onClick={() =>
                             onUpdateQuantity(
                               item.product.id,
+                              item.versionId,
                               item.size,
                               Math.min(maxStock, item.quantity + 1)
                             )
@@ -117,7 +152,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </div>
 
                       <button
-                        onClick={() => onRemoveItem(item.product.id, item.size)}
+                        onClick={() => onRemoveItem(item.product.id, item.versionId, item.size)}
                         className="text-zinc-500 hover:text-rose-400 p-1.5 rounded cursor-pointer"
                         title="Remover par"
                       >
@@ -137,15 +172,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between text-zinc-400">
                 <span>Subtotal:</span>
-                <span className="font-mono text-zinc-200">{formatCurrency(subtotal)}</span>
+                <span className="font-mono tabular-nums text-zinc-200">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-emerald-400 font-semibold">
                 <span>Desconto PIX (5%):</span>
-                <span className="font-mono">-{formatCurrency(pixDiscount)}</span>
+                <span className="font-mono tabular-nums">-{formatCurrency(pixDiscount)}</span>
               </div>
               <div className="flex justify-between text-white text-base font-bold pt-2 border-t border-zinc-800">
                 <span className="font-anton uppercase tracking-wider">Total no PIX:</span>
-                <span className="font-anton text-xl text-[#ff4d55]">
+                <span className="font-anton text-xl text-[#ff4d55] tabular-nums">
                   {formatCurrency(totalPix)}
                 </span>
               </div>
